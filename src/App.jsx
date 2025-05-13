@@ -137,6 +137,49 @@ export default function App() {
     }
   }, [enemy.health, gameOver, encounterType]);
 
+  // --- Shop Logic ---
+  const buyHealthPotion = () => {
+    if (player.gold < 5) {
+      setLog((prev) => ["❌ Not enough gold for a health potion!", ...prev]);
+      return;
+    }
+    setPlayer((prev) => ({
+      ...prev,
+      gold: prev.gold - 5,
+      health: Math.min(prev.health + 30, 100),
+    }));
+    setLog((prev) => ["🧪 You bought a Health Potion (+30 HP)", ...prev]);
+  };
+
+  const buyManaPotion = () => {
+    if (player.gold < 5) {
+      setLog((prev) => ["❌ Not enough gold for a mana potion!", ...prev]);
+      return;
+    }
+    setPlayer((prev) => ({
+      ...prev,
+      gold: prev.gold - 5,
+      magic: Math.min(prev.magic + 20, 50),
+    }));
+    setLog((prev) => ["🔮 You bought a Mana Potion (+20 MP)", ...prev]);
+  };
+
+  // --- Inn Logic ---
+  const restAtInn = () => {
+    if (player.gold < 10) {
+      setLog((prev) => ["❌ Not enough gold to rest at the inn!", ...prev]);
+      return;
+    }
+    setPlayer((prev) => ({
+      ...prev,
+      gold: prev.gold - 10,
+      health: 100,
+      magic: 50,
+    }));
+    setLog((prev) => ["🛏️ You rested at the inn. Fully healed!", ...prev]);
+    setEncounterComplete(true);
+  };
+
   if (!name) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4">
@@ -164,12 +207,13 @@ export default function App() {
         🔄 Switch User
       </button>
 
+      <div className="mb-4">
+        <strong>Player</strong><br />
+        ❤️ {player.health} | 🔮 {player.magic} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
+      </div>
+
       {encounterType === "battle" && (
         <>
-          <div className="mb-2">
-            <strong>Player</strong><br />
-            ❤️ {player.health} | 🔮 {player.magic} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
-          </div>
           <div className="mb-2">
             <strong>{enemy.name}</strong><br />
             ❤️ {enemy.health}
@@ -199,11 +243,49 @@ export default function App() {
       )}
 
       {encounterType === "shop" && (
-        <div className="my-10 text-lg">🛒 You find a shop... (coming soon!)</div>
+        <>
+          <h2 className="text-xl my-4">🛒 Welcome to the Shop!</h2>
+          <div className="space-y-2 mb-4">
+            <button onClick={buyHealthPotion} className="bg-green-800 px-4 py-2 rounded w-full">
+              🧪 Buy Health Potion (+30 HP) - 5 Gold
+            </button>
+            <button onClick={buyManaPotion} className="bg-blue-800 px-4 py-2 rounded w-full">
+              🔮 Buy Mana Potion (+20 MP) - 5 Gold
+            </button>
+          </div>
+          <div className="bg-gray-800 p-2 mt-4 rounded h-24 overflow-y-auto text-left text-sm">
+            {log.map((entry, idx) => (
+              <div key={idx}>{entry}</div>
+            ))}
+          </div>
+          <button
+            onClick={() => setEncounterComplete(true)}
+            className="mt-4 bg-purple-700 px-4 py-2 rounded"
+          >
+            ➡️ Leave Shop
+          </button>
+        </>
       )}
 
       {encounterType === "inn" && (
-        <div className="my-10 text-lg">🛏️ You rest at an inn and regain strength... (coming soon!)</div>
+        <>
+          <h2 className="text-xl my-4">🛏️ Welcome to the Inn</h2>
+          <p className="mb-4">Rest to fully recover for 10 Gold</p>
+          <button onClick={restAtInn} className="bg-yellow-700 px-4 py-2 rounded mb-2">
+            🌙 Rest Now
+          </button>
+          <button
+            onClick={() => setEncounterComplete(true)}
+            className="bg-gray-700 px-4 py-2 rounded"
+          >
+            🚪 Leave Inn
+          </button>
+          <div className="bg-gray-800 p-2 mt-4 rounded h-24 overflow-y-auto text-left text-sm">
+            {log.map((entry, idx) => (
+              <div key={idx}>{entry}</div>
+            ))}
+          </div>
+        </>
       )}
 
       {encounterComplete && (
