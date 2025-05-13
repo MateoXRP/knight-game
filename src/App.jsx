@@ -14,6 +14,14 @@ const ENEMY_TABLE = {
   5: [{ name: "Zombie 🧟", baseHP: 100 }, { name: "Crocodile 🐊", baseHP: 110 }, { name: "Witch 🧙", baseHP: 90 }],
 };
 
+const RUNE_EMOJIS = {
+  red: "❤️",
+  blue: "🔷",
+  yellow: "🗡️",
+  purple: "🔥",
+  green: "🛡️",
+};
+
 const getRandomEnemy = (level) => {
   const enemies = ENEMY_TABLE[level] || ENEMY_TABLE[5];
   return enemies[Math.floor(Math.random() * enemies.length)];
@@ -35,7 +43,14 @@ export default function App() {
   const [encounterType, setEncounterType] = useState(null);
   const [previousEncounterType, setPreviousEncounterType] = useState(null);
   const [justStarted, setJustStarted] = useState(true);
-  const [player, setPlayer] = useState({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0 });
+  const [player, setPlayer] = useState({
+    health: 100,
+    magic: 50,
+    lives: 3,
+    gold: 10,
+    exp: 0,
+    runes: [],
+  });
   const [enemy, setEnemy] = useState({ name: "", health: 0 });
   const [log, setLog] = useState([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
@@ -70,17 +85,18 @@ export default function App() {
 
   const startNextEncounter = () => {
     submitKnightScore(name, level, encounterIndex);
-    if (encounterIndex >= 5) {
-      setLevel((prev) => prev + 1);
+
+    if (!justStarted && encounterIndex >= 5) {
+      setLevel(prev => prev + 1);
       setEncounterIndex(0);
     } else {
-      setEncounterIndex((prev) => prev + 1);
+      setEncounterIndex(prev => prev + 1);
     }
 
     const type = getRandomEncounterType(justStarted);
     if (justStarted) setJustStarted(false);
 
-    setLog([]); // ✅ clear log every time
+    setLog([]);
 
     if (type === "battle") {
       const chosen = getRandomEnemy(level);
@@ -102,7 +118,14 @@ export default function App() {
     setPreviousEncounterType(null);
     setJustStarted(true);
     setGameEnded(false);
-    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0 });
+    setPlayer({
+      health: 100,
+      magic: 50,
+      lives: 3,
+      gold: 10,
+      exp: 0,
+      runes: [],
+    });
     setEnemy({ name: "", health: 0 });
     setLog([]);
     setIsPlayerTurn(true);
@@ -141,8 +164,22 @@ export default function App() {
 
   useEffect(() => {
     if (enemy.health <= 0 && !gameOver && encounterType === "battle") {
-      setLog((prev) => ["🏆 You defeated the enemy!", ...prev]);
-      setPlayer((prev) => ({ ...prev, exp: prev.exp + 10, gold: prev.gold + 5 }));
+      const runeTypes = ["red", "blue", "yellow", "purple", "green"];
+      const foundRune = Math.random() < 0.25 ? runeTypes[Math.floor(Math.random() * runeTypes.length)] : null;
+
+      const newLog = ["🏆 You defeated the enemy!"];
+      const updates = {
+        exp: player.exp + 10,
+        gold: player.gold + 5,
+      };
+
+      if (foundRune) {
+        updates.runes = [...player.runes, foundRune];
+        newLog.unshift(`🔮 You found a ${foundRune.toUpperCase()} Rune!`);
+      }
+
+      setPlayer(prev => ({ ...prev, ...updates }));
+      setLog(prev => [...newLog, ...prev]);
       setGameOver(true);
       setEncounterComplete(true);
     }
@@ -184,9 +221,16 @@ export default function App() {
       <p className="mb-4">🌍 Level {level} — Encounter {encounterIndex}/5 ({encounterType})</p>
       <button onClick={handleSwitchUser} className="bg-red-700 px-2 py-1 rounded text-sm mb-4">🔄 Switch User</button>
 
-      <div className="mb-4">
+      <div className="mb-4 text-center">
         <strong>Player</strong><br />
         ❤️ {player.health} | 🔮 {player.magic} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
+        {player.runes.length > 0 && (
+          <div className="mt-1">
+            🧿 Runes: {player.runes.map((rune, i) => (
+              <span key={i}>{RUNE_EMOJIS[rune] || "❔"}</span>
+            ))}
+          </div>
+        )}
       </div>
 
       {encounterType === "battle" && (
