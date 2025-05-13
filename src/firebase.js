@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, doc, setDoc, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { getFirestore, doc, setDoc, getDocs, collection } from "firebase/firestore";
 
+// Firebase config from environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -10,17 +11,20 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
+// Submit or update user's best Knight Game score
 export async function submitKnightScore(name, level, encounter) {
   const ref = doc(db, "knight_leaderboard", name);
   await setDoc(ref, { name, level, encounter });
 }
 
+// Fetch top 10 Knight Game scores
 export async function fetchKnightLeaderboard() {
-  const q = query(collection(db, "knight_leaderboard"), orderBy("level", "desc"), orderBy("encounter", "desc"), limit(10));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => doc.data());
+  const snapshot = await getDocs(collection(db, "knight_leaderboard"));
+  const scores = snapshot.docs.map(doc => doc.data());
+  return scores.sort((a, b) => (b.level * 10 + b.encounter) - (a.level * 10 + a.encounter)).slice(0, 10);
 }
 
