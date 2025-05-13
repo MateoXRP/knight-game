@@ -25,20 +25,43 @@ export default function Shop({ player, setPlayer, setLog, setEncounterComplete, 
     setLog(prev => ["🔮 You bought a Mana Potion (+20 MP)", ...prev]);
   };
 
+  const buyLife = () => {
+    if (player.gold < 15) {
+      setLog(prev => ["❌ Not enough gold for an extra life!", ...prev]);
+      return;
+    }
+    setPlayer(prev => ({
+      ...prev,
+      gold: prev.gold - 15,
+      lives: prev.lives + 1,
+    }));
+    setLog(prev => ["💖 You bought an Extra Life (+1 Life)", ...prev]);
+  };
+
   return (
-    <div className="w-full max-w-md mx-auto text-center">
+    <div className="text-center w-full max-w-md mx-auto">
       <h2 className="text-xl my-4">🛒 Welcome to the Shop!</h2>
+
       <button onClick={buyHealthPotion} className="bg-green-800 px-4 py-2 rounded w-full mb-2">
         🧪 Buy Health Potion (+30 HP) - 5 Gold
       </button>
-      <button onClick={buyManaPotion} className="bg-blue-800 px-4 py-2 rounded w-full">
+
+      <button onClick={buyManaPotion} className="bg-blue-800 px-4 py-2 rounded w-full mb-2">
         🔮 Buy Mana Potion (+20 MP) - 5 Gold
       </button>
+
+      <button onClick={buyLife} className="bg-pink-700 px-4 py-2 rounded w-full mb-2">
+        💖 Buy Extra Life (+1 Life) - 15 Gold
+      </button>
+
       <button onClick={() => setEncounterComplete(true)} className="mt-4 bg-purple-700 px-4 py-2 rounded">
         ➡️ Leave Shop
       </button>
+
       <div className="bg-gray-800 p-2 mt-4 rounded h-24 overflow-y-auto text-left text-sm">
-        {log.map((entry, idx) => <div key={idx}>{entry}</div>)}
+        {log.map((entry, idx) => (
+          <div key={idx}>{entry}</div>
+        ))}
       </div>
     </div>
   );
