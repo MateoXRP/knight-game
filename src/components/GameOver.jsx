@@ -8,7 +8,7 @@ export default function GameOver({ name, level, encounterIndex, restartGame }) {
   useEffect(() => {
     const currentValue = level * 10 + encounterIndex;
 
-    submitKnightScore(name, level, encounterIndex); // ✅ always submit current run
+    submitKnightScore(name, level, encounterIndex); // always write the current run
 
     fetchKnightLeaderboard().then((entries) => {
       const userBest = entries.find(e => e.name === name);
@@ -23,7 +23,6 @@ export default function GameOver({ name, level, encounterIndex, restartGame }) {
 
       setLeaderboard(
         entries
-          .concat({ name, level, encounter: encounterIndex })
           .sort((a, b) => (b.level * 10 + b.encounter) - (a.level * 10 + a.encounter))
           .slice(0, 10)
       );

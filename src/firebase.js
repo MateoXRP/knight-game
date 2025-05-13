@@ -1,5 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDocs, collection } from "firebase/firestore";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  getDocs,
+  collection
+} from "firebase/firestore";
 
 // Firebase config from environment variables
 const firebaseConfig = {
@@ -15,16 +22,30 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// Submit or update user's best Knight Game score
+// ✅ Submit or update user's best Knight Game score
 export async function submitKnightScore(name, level, encounter) {
   const ref = doc(db, "knight_leaderboard", name);
-  await setDoc(ref, { name, level, encounter });
+  const current = level * 10 + encounter;
+
+  const snapshot = await getDoc(ref);
+  if (snapshot.exists()) {
+    const existing = snapshot.data();
+    const previous = existing.level * 10 + existing.encounter;
+
+    if (current > previous) {
+      await setDoc(ref, { name, level, encounter });
+    }
+  } else {
+    await setDoc(ref, { name, level, encounter });
+  }
 }
 
-// Fetch top 10 Knight Game scores
+// ✅ Fetch top 10 Knight Game scores
 export async function fetchKnightLeaderboard() {
   const snapshot = await getDocs(collection(db, "knight_leaderboard"));
   const scores = snapshot.docs.map(doc => doc.data());
-  return scores.sort((a, b) => (b.level * 10 + b.encounter) - (a.level * 10 + a.encounter)).slice(0, 10);
+  return scores
+    .sort((a, b) => (b.level * 10 + b.encounter) - (a.level * 10 + a.encounter))
+    .slice(0, 10);
 }
 
