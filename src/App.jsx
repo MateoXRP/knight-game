@@ -7,8 +7,8 @@ import Inn from "./components/Inn";
 import GameOver from "./components/GameOver";
 
 const ENEMY_TABLE = {
-  1: [{ name: "Goblin 👺", baseHP: 60 }, { name: "Rat 🐀", baseHP: 50 }, { name: "Slime 🟢", baseHP: 40 }],
-  2: [{ name: "Wolf 🐺", baseHP: 70 }, { name: "Spider 🕷", baseHP: 60 }, { name: "Treant 🌲", baseHP: 80 }],
+  1: [{ name: "Goblin 👺", baseHP: 60 }, { name: "Rat 💀", baseHP: 50 }, { name: "Slime 🟢", baseHP: 40 }],
+  2: [{ name: "Wolf 🐺", baseHP: 70 }, { name: "Spider 👷", baseHP: 60 }, { name: "Treant 🌲", baseHP: 80 }],
   3: [{ name: "Crab 🦀", baseHP: 90 }, { name: "Pirate ☠️", baseHP: 100 }, { name: "Parrot 🦜", baseHP: 85 }],
   4: [{ name: "Troll 🧌", baseHP: 110 }, { name: "Eagle 🦅", baseHP: 95 }, { name: "Rock Golem 🪨", baseHP: 120 }],
   5: [{ name: "Zombie 🧟", baseHP: 100 }, { name: "Crocodile 🐊", baseHP: 110 }, { name: "Witch 🧙", baseHP: 90 }],
@@ -42,7 +42,7 @@ export default function App() {
   const [encounterIndex, setEncounterIndex] = useState(0);
   const [encounterType, setEncounterType] = useState(null);
   const [previousEncounterType, setPreviousEncounterType] = useState(null);
-  const [justStarted, setJustStarted] = useState(true);
+  const [justStarted, setJustStarted] = useState(false);
   const [player, setPlayer] = useState({
     health: 100,
     magic: 50,
@@ -58,11 +58,11 @@ export default function App() {
   const [gameEnded, setGameEnded] = useState(false);
   const [encounterComplete, setEncounterComplete] = useState(false);
 
-  const redRunes = player.runes?.filter(r => r === "red") ?? [];
-  const blueRunes = player.runes?.filter(r => r === "blue") ?? [];
-  const yellowRunes = player.runes?.filter(r => r === "yellow") ?? [];
-  const purpleRunes = player.runes?.filter(r => r === "purple") ?? [];
-  const greenRunes = player.runes?.filter(r => r === "green") ?? [];
+  const redRunes = player.runes.filter(r => r === "red");
+  const blueRunes = player.runes.filter(r => r === "blue");
+  const yellowRunes = player.runes.filter(r => r === "yellow");
+  const purpleRunes = player.runes.filter(r => r === "purple");
+  const greenRunes = player.runes.filter(r => r === "green");
 
   const maxHP = 100 + 10 * redRunes.length;
   const maxMP = 50 + 10 * blueRunes.length;
@@ -73,18 +73,24 @@ export default function App() {
     const savedName = Cookies.get("knightPlayer");
     if (savedName && savedName.trim() !== "") {
       setName(savedName);
-      startNextEncounter();
+      setJustStarted(true);
     } else {
       Cookies.remove("knightPlayer");
     }
     fetchKnightLeaderboard().then(() => {});
   }, []);
 
+  useEffect(() => {
+    if (justStarted && name) {
+      startNextEncounter();
+    }
+  }, [justStarted]);
+
   const handleNameSubmit = () => {
     if (nameInput.trim() !== "") {
       Cookies.set("knightPlayer", nameInput.trim());
       setName(nameInput.trim());
-      startNextEncounter();
+      setJustStarted(true);
     }
   };
 
@@ -97,10 +103,10 @@ export default function App() {
   const startNextEncounter = () => {
     submitKnightScore(name, level, encounterIndex);
 
-    if (!justStarted && encounterIndex >= 5) {
+    if (!justStarted && encounterIndex >= 4) {
       setLevel(prev => prev + 1);
       setEncounterIndex(0);
-    } else {
+    } else if (!justStarted) {
       setEncounterIndex(prev => prev + 1);
     }
 
@@ -127,7 +133,6 @@ export default function App() {
     setEncounterIndex(0);
     setEncounterType(null);
     setPreviousEncounterType(null);
-    setJustStarted(true);
     setGameEnded(false);
     setPlayer({
       health: 100,
@@ -142,8 +147,8 @@ export default function App() {
     setIsPlayerTurn(true);
     setGameOver(false);
     setEncounterComplete(false);
+    setJustStarted(true);
     fetchKnightLeaderboard().then(() => {});
-    startNextEncounter();
   };
 
   useEffect(() => {
@@ -168,7 +173,7 @@ export default function App() {
           }
         } else {
           setPlayer(prev => ({ ...prev, health: newHealth }));
-          setLog(prev => [`👺 Enemy hits you for ${damage} damage!`, ...prev]);
+          setLog(prev => ["👺 Enemy hits you!", ...prev]);
           setIsPlayerTurn(true);
         }
       }, 1000);
@@ -232,7 +237,7 @@ export default function App() {
     <div className="text-white bg-black min-h-screen p-4 flex flex-col items-center justify-center">
       <h1 className="text-2xl mb-1">🛡️ Knight Game</h1>
       <p className="mb-2">Welcome, {name}!</p>
-      <p className="mb-4">🌍 Level {level} — Encounter {encounterIndex}/5 ({encounterType})</p>
+      <p className="mb-4">🌍 Level {level} — Encounter {encounterIndex + 1}/5 ({encounterType})</p>
       <button onClick={handleSwitchUser} className="bg-red-700 px-2 py-1 rounded text-sm mb-4">🔄 Switch User</button>
 
       <div className="mb-4 text-center">
@@ -240,8 +245,8 @@ export default function App() {
         ❤️ {displayedHealth} / {maxHP} | 🔮 {displayedMagic} / {maxMP} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
         {player.runes.length > 0 && (
           <div className="mt-1">
-            🧿 Runes: {player.runes.map((rune, i) => (
-              <span key={i}>{RUNE_EMOJIS[rune] || "❔"}</span>
+            🧣 Runes: {player.runes.map((rune, i) => (
+              <span key={i}>{RUNE_EMOJIS[rune] || "❓"}</span>
             ))}
           </div>
         )}
@@ -259,7 +264,7 @@ export default function App() {
             const bonus = yellowRunes.length * 2;
             const damage = base + bonus;
             setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
-            setLog(prev => [`🗡️ You attack for ${damage} damage!`, ...prev]);
+            setLog(prev => ["🗡️ You attack!", ...prev]);
             setIsPlayerTurn(false);
           }}
           onCastSpell={() => {
@@ -269,7 +274,7 @@ export default function App() {
             const damage = base + bonus;
             setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
             setPlayer(prev => ({ ...prev, magic: prev.magic - 10 }));
-            setLog(prev => [`🔥 You cast a spell for ${damage} damage!`, ...prev]);
+            setLog(prev => ["🔥 You cast a spell!", ...prev]);
             setIsPlayerTurn(false);
           }}
         />
