@@ -8,6 +8,7 @@ export default function App() {
   const [level, setLevel] = useState(1);
   const [encounterIndex, setEncounterIndex] = useState(0);
   const [encounterType, setEncounterType] = useState(null);
+  const [previousEncounterType, setPreviousEncounterType] = useState(null);
 
   const [player, setPlayer] = useState({
     health: 100,
@@ -21,6 +22,7 @@ export default function App() {
   const [log, setLog] = useState([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [gameOver, setGameOver] = useState(false);
+  const [gameEnded, setGameEnded] = useState(false);
   const [encounterComplete, setEncounterComplete] = useState(false);
 
   useEffect(() => {
@@ -32,7 +34,7 @@ export default function App() {
     if (nameInput.trim() !== "") {
       Cookies.set("knightPlayer", nameInput.trim());
       setName(nameInput.trim());
-      startNextEncounter();
+      startNextEncounter(true);
     }
   };
 
@@ -42,14 +44,23 @@ export default function App() {
     setNameInput("");
   };
 
-  const getRandomEncounterType = () => {
-    const roll = Math.random();
-    if (roll < 0.7) return "battle";
-    if (roll < 0.85) return "shop";
-    return "inn";
+  const getRandomEncounterType = (isFirstTurn = false) => {
+    if (isFirstTurn && level === 1 && encounterIndex === 0) return "battle";
+
+    let type;
+    do {
+      const roll = Math.random();
+      if (roll < 0.7) type = "battle";
+      else if (roll < 0.85) type = "shop";
+      else type = "inn";
+    } while (
+      (type === previousEncounterType && (type === "shop" || type === "inn"))
+    );
+
+    return type;
   };
 
-  const startNextEncounter = () => {
+  const startNextEncounter = (isFirstTurn = false) => {
     if (encounterIndex >= 5) {
       setLevel((prev) => prev + 1);
       setEncounterIndex(0);
@@ -57,8 +68,9 @@ export default function App() {
       setEncounterIndex((prev) => prev + 1);
     }
 
-    const type = getRandomEncounterType();
+    const type = getRandomEncounterType(isFirstTurn);
     setEncounterType(type);
+    setPreviousEncounterType(type);
     setEncounterComplete(false);
     setGameOver(false);
     setIsPlayerTurn(true);
@@ -73,7 +85,27 @@ export default function App() {
     }
   };
 
-  // --- Battle Logic ---
+  const restartGame = () => {
+    setLevel(1);
+    setEncounterIndex(0);
+    setEncounterType(null);
+    setPreviousEncounterType(null);
+    setGameEnded(false);
+    setPlayer({
+      health: 100,
+      magic: 50,
+      lives: 3,
+      gold: 10,
+      exp: 0,
+    });
+    setEnemy({ name: "", health: 0 });
+    setLog([]);
+    setIsPlayerTurn(true);
+    setGameOver(false);
+    setEncounterComplete(false);
+    startNextEncounter(true);
+  };
+
   const attack = () => {
     if (!isPlayerTurn || gameOver || encounterType !== "battle") return;
     const damage = Math.floor(Math.random() * 15) + 5;
@@ -102,14 +134,15 @@ export default function App() {
       if (newLives <= 0) {
         setLog((prev) => ["💀 You have died. Game over!", ...prev]);
         setGameOver(true);
-        setEncounterComplete(true);
+        setGameEnded(true);
       } else {
         setPlayer((prev) => ({
           ...prev,
           health: 100,
+          magic: 50, // ✅ Restore magic on life loss
           lives: newLives,
         }));
-        setLog((prev) => ["🩸 You lost a life! Revived with full health.", ...prev]);
+        setLog((prev) => ["🩸 You lost a life! Revived with full health and magic.", ...prev]);
         setIsPlayerTurn(true);
       }
     } else {
@@ -137,7 +170,6 @@ export default function App() {
     }
   }, [enemy.health, gameOver, encounterType]);
 
-  // --- Shop Logic ---
   const buyHealthPotion = () => {
     if (player.gold < 5) {
       setLog((prev) => ["❌ Not enough gold for a health potion!", ...prev]);
@@ -164,7 +196,6 @@ export default function App() {
     setLog((prev) => ["🔮 You bought a Mana Potion (+20 MP)", ...prev]);
   };
 
-  // --- Inn Logic ---
   const restAtInn = () => {
     if (player.gold < 10) {
       setLog((prev) => ["❌ Not enough gold to rest at the inn!", ...prev]);
@@ -193,6 +224,18 @@ export default function App() {
         />
         <button onClick={handleNameSubmit} className="bg-green-700 px-4 py-2 rounded">
           Start Game
+        </button>
+      </div>
+    );
+  }
+
+  if (gameEnded) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white text-center p-4">
+        <h1 className="text-3xl mb-4">💀 Game Over</h1>
+        <p className="mb-4">You fought bravely, {name}.</p>
+        <button onClick={restartGame} className="bg-purple-700 px-6 py-3 rounded text-lg">
+          🔁 Restart Game
         </button>
       </div>
     );
