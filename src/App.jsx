@@ -58,6 +58,17 @@ export default function App() {
   const [gameEnded, setGameEnded] = useState(false);
   const [encounterComplete, setEncounterComplete] = useState(false);
 
+  const redRunes = player.runes?.filter(r => r === "red") ?? [];
+  const blueRunes = player.runes?.filter(r => r === "blue") ?? [];
+  const yellowRunes = player.runes?.filter(r => r === "yellow") ?? [];
+  const purpleRunes = player.runes?.filter(r => r === "purple") ?? [];
+  const greenRunes = player.runes?.filter(r => r === "green") ?? [];
+
+  const maxHP = 100 + 10 * redRunes.length;
+  const maxMP = 50 + 10 * blueRunes.length;
+  const displayedHealth = Math.min(player.health, maxHP);
+  const displayedMagic = Math.min(player.magic, maxMP);
+
   useEffect(() => {
     const savedName = Cookies.get("knightPlayer");
     if (savedName && savedName.trim() !== "") {
@@ -138,7 +149,10 @@ export default function App() {
   useEffect(() => {
     if (!isPlayerTurn && !gameOver && encounterType === "battle" && enemy.health > 0) {
       const timer = setTimeout(() => {
-        const damage = Math.floor(Math.random() * 10) + 5;
+        const base = Math.floor(Math.random() * 10) + 5;
+        const reduction = greenRunes.length;
+        const damage = Math.max(0, base - reduction);
+
         const newHealth = Math.max(player.health - damage, 0);
 
         if (newHealth <= 0) {
@@ -148,7 +162,7 @@ export default function App() {
             setGameOver(true);
             setGameEnded(true);
           } else {
-            setPlayer(prev => ({ ...prev, health: 100, magic: 50, lives: newLives }));
+            setPlayer(prev => ({ ...prev, health: maxHP, magic: maxMP, lives: newLives }));
             setLog(prev => ["🩸 You lost a life! Revived with full health and magic.", ...prev]);
             setIsPlayerTurn(true);
           }
@@ -223,7 +237,7 @@ export default function App() {
 
       <div className="mb-4 text-center">
         <strong>Player</strong><br />
-        ❤️ {player.health} | 🔮 {player.magic} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
+        ❤️ {displayedHealth} / {maxHP} | 🔮 {displayedMagic} / {maxMP} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
         {player.runes.length > 0 && (
           <div className="mt-1">
             🧿 Runes: {player.runes.map((rune, i) => (
@@ -241,14 +255,18 @@ export default function App() {
           canCast={player.magic >= 10}
           disabled={gameOver}
           onAttack={() => {
-            const damage = Math.floor(Math.random() * 15) + 5;
+            const base = Math.floor(Math.random() * 15) + 5;
+            const bonus = yellowRunes.length * 2;
+            const damage = base + bonus;
             setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
             setLog(prev => [`🗡️ You attack for ${damage} damage!`, ...prev]);
             setIsPlayerTurn(false);
           }}
           onCastSpell={() => {
             if (player.magic < 10) return;
-            const damage = Math.floor(Math.random() * 25) + 10;
+            const base = Math.floor(Math.random() * 25) + 10;
+            const bonus = purpleRunes.length * 4;
+            const damage = base + bonus;
             setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
             setPlayer(prev => ({ ...prev, magic: prev.magic - 10 }));
             setLog(prev => [`🔥 You cast a spell for ${damage} damage!`, ...prev]);

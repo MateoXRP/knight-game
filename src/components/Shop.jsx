@@ -1,4 +1,10 @@
 export default function Shop({ player, setPlayer, setLog, setEncounterComplete, log }) {
+  const redRunes = player.runes.filter(r => r === "red");
+  const blueRunes = player.runes.filter(r => r === "blue");
+
+  const maxHP = 100 + 10 * redRunes.length;
+  const maxMP = 50 + 10 * blueRunes.length;
+
   const buyHealthPotion = () => {
     if (player.gold < 5) {
       setLog(prev => ["❌ Not enough gold for a health potion!", ...prev]);
@@ -7,7 +13,7 @@ export default function Shop({ player, setPlayer, setLog, setEncounterComplete, 
     setPlayer(prev => ({
       ...prev,
       gold: prev.gold - 5,
-      health: Math.min(prev.health + 30, 100),
+      health: Math.min(prev.health + 30, maxHP),
     }));
     setLog(prev => ["🧪 You bought a Health Potion (+30 HP)", ...prev]);
   };
@@ -20,7 +26,7 @@ export default function Shop({ player, setPlayer, setLog, setEncounterComplete, 
     setPlayer(prev => ({
       ...prev,
       gold: prev.gold - 5,
-      magic: Math.min(prev.magic + 20, 50),
+      magic: Math.min(prev.magic + 20, maxMP),
     }));
     setLog(prev => ["🔮 You bought a Mana Potion (+20 MP)", ...prev]);
   };
