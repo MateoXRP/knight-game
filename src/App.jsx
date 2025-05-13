@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Cookies from "js-cookie";
 
 export default function App() {
+  const [name, setName] = useState("");
+  const [nameInput, setNameInput] = useState("");
+
   const [player, setPlayer] = useState({
     health: 100,
     magic: 50,
@@ -17,6 +21,26 @@ export default function App() {
   const [log, setLog] = useState(["⚔️ A wild Goblin appears!"]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [gameOver, setGameOver] = useState(false);
+
+  useEffect(() => {
+    const savedName = Cookies.get("knightPlayer");
+    if (savedName) {
+      setName(savedName);
+    }
+  }, []);
+
+  const handleNameSubmit = () => {
+    if (nameInput.trim() !== "") {
+      Cookies.set("knightPlayer", nameInput.trim());
+      setName(nameInput.trim());
+    }
+  };
+
+  const handleSwitchUser = () => {
+    Cookies.remove("knightPlayer");
+    setName("");
+    setNameInput("");
+  };
 
   const attack = () => {
     if (!isPlayerTurn || gameOver) return;
@@ -43,7 +67,6 @@ export default function App() {
     const newHealth = Math.max(player.health - damage, 0);
     setPlayer((prev) => ({ ...prev, health: newHealth }));
     setLog((prev) => [`👺 Enemy hits you for ${damage} damage!`, ...prev]);
-    setIsPlayerTurn(true);
 
     if (newHealth <= 0) {
       const newLives = player.lives - 1;
@@ -58,26 +81,62 @@ export default function App() {
         }));
         setLog((prev) => ["🩸 You lost a life! Revived with full health.", ...prev]);
       }
+    } else {
+      setIsPlayerTurn(true);
     }
   };
 
-  if (!isPlayerTurn && !gameOver && enemy.health > 0) {
-    setTimeout(enemyAttack, 1000);
-  }
+  useEffect(() => {
+    if (!isPlayerTurn && !gameOver && enemy.health > 0) {
+      const timer = setTimeout(enemyAttack, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isPlayerTurn, gameOver, enemy.health]);
 
-  if (enemy.health <= 0 && !gameOver) {
-    setLog((prev) => ["🏆 You defeated the enemy!", ...prev]);
-    setPlayer((prev) => ({
-      ...prev,
-      exp: prev.exp + 10,
-      gold: prev.gold + 5,
-    }));
-    setGameOver(true);
+  useEffect(() => {
+    if (enemy.health <= 0 && !gameOver) {
+      setLog((prev) => ["🏆 You defeated the enemy!", ...prev]);
+      setPlayer((prev) => ({
+        ...prev,
+        exp: prev.exp + 10,
+        gold: prev.gold + 5,
+      }));
+      setGameOver(true);
+    }
+  }, [enemy.health, gameOver]);
+
+  if (!name) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4">
+        <h1 className="text-3xl mb-4">🛡️ Knight Game</h1>
+        <p className="mb-2">Enter your name to begin:</p>
+        <input
+          type="text"
+          className="text-black p-2 rounded mb-2"
+          value={nameInput}
+          onChange={(e) => setNameInput(e.target.value)}
+        />
+        <button
+          onClick={handleNameSubmit}
+          className="bg-green-700 px-4 py-2 rounded"
+        >
+          Start Game
+        </button>
+      </div>
+    );
   }
 
   return (
     <div className="max-w-md w-full p-4 text-center">
-      <h1 className="text-2xl mb-4">🛡️ Knight Game - Battle</h1>
+      <h1 className="text-2xl mb-2">🛡️ Knight Game - Battle</h1>
+      <p className="mb-4">Welcome, {name}!</p>
+      <button
+        onClick={handleSwitchUser}
+        className="bg-red-700 px-2 py-1 rounded text-sm mb-4"
+      >
+        🔄 Switch User
+      </button>
+
       <div className="mb-2">
         <strong>Player</strong><br />
         ❤️ {player.health} | 🔮 {player.magic} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
