@@ -1,23 +1,49 @@
+// React imports
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
+
+// Enemy sets per level
+const ENEMY_TABLE = {
+  1: [
+    { name: "Goblin 👺", baseHP: 60 },
+    { name: "Rat 🐀", baseHP: 50 },
+    { name: "Slime 🟢", baseHP: 40 },
+  ],
+  2: [
+    { name: "Wolf 🐺", baseHP: 70 },
+    { name: "Spider 🕷", baseHP: 60 },
+    { name: "Treant 🌲", baseHP: 80 },
+  ],
+  3: [
+    { name: "Crab 🦀", baseHP: 90 },
+    { name: "Pirate ☠️", baseHP: 100 },
+    { name: "Parrot 🦜", baseHP: 85 },
+  ],
+  4: [
+    { name: "Troll 🧌", baseHP: 110 },
+    { name: "Eagle 🦅", baseHP: 95 },
+    { name: "Rock Golem 🪨", baseHP: 120 },
+  ],
+  5: [
+    { name: "Zombie 🧟", baseHP: 100 },
+    { name: "Crocodile 🐊", baseHP: 110 },
+    { name: "Witch 🧙", baseHP: 90 },
+  ],
+};
+
+const getRandomEnemy = (level) => {
+  const enemies = ENEMY_TABLE[level] || ENEMY_TABLE[5];
+  return enemies[Math.floor(Math.random() * enemies.length)];
+};
 
 export default function App() {
   const [name, setName] = useState("");
   const [nameInput, setNameInput] = useState("");
-
   const [level, setLevel] = useState(1);
   const [encounterIndex, setEncounterIndex] = useState(0);
   const [encounterType, setEncounterType] = useState(null);
   const [previousEncounterType, setPreviousEncounterType] = useState(null);
-
-  const [player, setPlayer] = useState({
-    health: 100,
-    magic: 50,
-    lives: 3,
-    gold: 10,
-    exp: 0,
-  });
-
+  const [player, setPlayer] = useState({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0 });
   const [enemy, setEnemy] = useState({ name: "", health: 0 });
   const [log, setLog] = useState([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
@@ -46,17 +72,13 @@ export default function App() {
 
   const getRandomEncounterType = (isFirstTurn = false) => {
     if (isFirstTurn && level === 1 && encounterIndex === 0) return "battle";
-
     let type;
     do {
       const roll = Math.random();
       if (roll < 0.7) type = "battle";
       else if (roll < 0.85) type = "shop";
       else type = "inn";
-    } while (
-      (type === previousEncounterType && (type === "shop" || type === "inn"))
-    );
-
+    } while ((type === previousEncounterType && (type === "shop" || type === "inn")));
     return type;
   };
 
@@ -67,7 +89,6 @@ export default function App() {
     } else {
       setEncounterIndex((prev) => prev + 1);
     }
-
     const type = getRandomEncounterType(isFirstTurn);
     setEncounterType(type);
     setPreviousEncounterType(type);
@@ -75,13 +96,10 @@ export default function App() {
     setGameOver(false);
     setIsPlayerTurn(true);
     setLog([]);
-
     if (type === "battle") {
-      setEnemy({
-        name: "Goblin 👺",
-        health: 60 + level * 10,
-      });
-      setLog(["⚔️ A wild Goblin appears!"]);
+      const chosen = getRandomEnemy(level);
+      setEnemy({ name: chosen.name, health: chosen.baseHP });
+      setLog([`⚔️ A wild ${chosen.name} appears!`]);
     }
   };
 
@@ -91,13 +109,7 @@ export default function App() {
     setEncounterType(null);
     setPreviousEncounterType(null);
     setGameEnded(false);
-    setPlayer({
-      health: 100,
-      magic: 50,
-      lives: 3,
-      gold: 10,
-      exp: 0,
-    });
+    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0 });
     setEnemy({ name: "", health: 0 });
     setLog([]);
     setIsPlayerTurn(true);
@@ -128,7 +140,6 @@ export default function App() {
     const newHealth = Math.max(player.health - damage, 0);
     setPlayer((prev) => ({ ...prev, health: newHealth }));
     setLog((prev) => [`👺 Enemy hits you for ${damage} damage!`, ...prev]);
-
     if (newHealth <= 0) {
       const newLives = player.lives - 1;
       if (newLives <= 0) {
@@ -136,12 +147,7 @@ export default function App() {
         setGameOver(true);
         setGameEnded(true);
       } else {
-        setPlayer((prev) => ({
-          ...prev,
-          health: 100,
-          magic: 50, // ✅ Restore magic on life loss
-          lives: newLives,
-        }));
+        setPlayer((prev) => ({ ...prev, health: 100, magic: 50, lives: newLives }));
         setLog((prev) => ["🩸 You lost a life! Revived with full health and magic.", ...prev]);
         setIsPlayerTurn(true);
       }
@@ -160,11 +166,7 @@ export default function App() {
   useEffect(() => {
     if (enemy.health <= 0 && !gameOver && encounterType === "battle") {
       setLog((prev) => ["🏆 You defeated the enemy!", ...prev]);
-      setPlayer((prev) => ({
-        ...prev,
-        exp: prev.exp + 10,
-        gold: prev.gold + 5,
-      }));
+      setPlayer((prev) => ({ ...prev, exp: prev.exp + 10, gold: prev.gold + 5 }));
       setGameOver(true);
       setEncounterComplete(true);
     }
@@ -175,11 +177,7 @@ export default function App() {
       setLog((prev) => ["❌ Not enough gold for a health potion!", ...prev]);
       return;
     }
-    setPlayer((prev) => ({
-      ...prev,
-      gold: prev.gold - 5,
-      health: Math.min(prev.health + 30, 100),
-    }));
+    setPlayer((prev) => ({ ...prev, gold: prev.gold - 5, health: Math.min(prev.health + 30, 100) }));
     setLog((prev) => ["🧪 You bought a Health Potion (+30 HP)", ...prev]);
   };
 
@@ -188,11 +186,7 @@ export default function App() {
       setLog((prev) => ["❌ Not enough gold for a mana potion!", ...prev]);
       return;
     }
-    setPlayer((prev) => ({
-      ...prev,
-      gold: prev.gold - 5,
-      magic: Math.min(prev.magic + 20, 50),
-    }));
+    setPlayer((prev) => ({ ...prev, gold: prev.gold - 5, magic: Math.min(prev.magic + 20, 50) }));
     setLog((prev) => ["🔮 You bought a Mana Potion (+20 MP)", ...prev]);
   };
 
@@ -201,19 +195,14 @@ export default function App() {
       setLog((prev) => ["❌ Not enough gold to rest at the inn!", ...prev]);
       return;
     }
-    setPlayer((prev) => ({
-      ...prev,
-      gold: prev.gold - 10,
-      health: 100,
-      magic: 50,
-    }));
+    setPlayer((prev) => ({ ...prev, gold: prev.gold - 10, health: 100, magic: 50 }));
     setLog((prev) => ["🛏️ You rested at the inn. Fully healed!", ...prev]);
     setEncounterComplete(true);
   };
 
   if (!name) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white p-4">
+      <div className="text-white bg-black min-h-screen flex flex-col items-center justify-center p-4">
         <h1 className="text-3xl mb-4">🛡️ Knight Game</h1>
         <p className="mb-2">Enter your name to begin:</p>
         <input
@@ -231,7 +220,7 @@ export default function App() {
 
   if (gameEnded) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white text-center p-4">
+      <div className="text-white bg-black min-h-screen flex flex-col items-center justify-center p-4">
         <h1 className="text-3xl mb-4">💀 Game Over</h1>
         <p className="mb-4">You fought bravely, {name}.</p>
         <button onClick={restartGame} className="bg-purple-700 px-6 py-3 rounded text-lg">
@@ -242,13 +231,11 @@ export default function App() {
   }
 
   return (
-    <div className="max-w-md w-full p-4 text-center">
+    <div className="text-white bg-black min-h-screen p-4 flex flex-col items-center justify-center">
       <h1 className="text-2xl mb-1">🛡️ Knight Game</h1>
       <p className="mb-2">Welcome, {name}!</p>
       <p className="mb-4">🌍 Level {level} — Encounter {encounterIndex}/5 ({encounterType})</p>
-      <button onClick={handleSwitchUser} className="bg-red-700 px-2 py-1 rounded text-sm mb-4">
-        🔄 Switch User
-      </button>
+      <button onClick={handleSwitchUser} className="bg-red-700 px-2 py-1 rounded text-sm mb-4">🔄 Switch User</button>
 
       <div className="mb-4">
         <strong>Player</strong><br />
@@ -258,29 +245,14 @@ export default function App() {
       {encounterType === "battle" && (
         <>
           <div className="mb-2">
-            <strong>{enemy.name}</strong><br />
-            ❤️ {enemy.health}
+            <strong>{enemy.name}</strong><br />❤️ {enemy.health}
           </div>
           <div className="space-x-2 my-2">
-            <button
-              className="bg-green-700 px-4 py-2 rounded disabled:opacity-50"
-              onClick={attack}
-              disabled={!isPlayerTurn || gameOver}
-            >
-              Attack
-            </button>
-            <button
-              className="bg-blue-700 px-4 py-2 rounded disabled:opacity-50"
-              onClick={castSpell}
-              disabled={!isPlayerTurn || player.magic < 10 || gameOver}
-            >
-              Cast Spell
-            </button>
+            <button className="bg-green-700 px-4 py-2 rounded disabled:opacity-50" onClick={attack} disabled={!isPlayerTurn || gameOver}>Attack</button>
+            <button className="bg-blue-700 px-4 py-2 rounded disabled:opacity-50" onClick={castSpell} disabled={!isPlayerTurn || player.magic < 10 || gameOver}>Cast Spell</button>
           </div>
           <div className="bg-gray-800 p-2 mt-4 rounded h-40 overflow-y-auto text-left text-sm">
-            {log.map((entry, idx) => (
-              <div key={idx}>{entry}</div>
-            ))}
+            {log.map((entry, idx) => <div key={idx}>{entry}</div>)}
           </div>
         </>
       )}
@@ -288,25 +260,12 @@ export default function App() {
       {encounterType === "shop" && (
         <>
           <h2 className="text-xl my-4">🛒 Welcome to the Shop!</h2>
-          <div className="space-y-2 mb-4">
-            <button onClick={buyHealthPotion} className="bg-green-800 px-4 py-2 rounded w-full">
-              🧪 Buy Health Potion (+30 HP) - 5 Gold
-            </button>
-            <button onClick={buyManaPotion} className="bg-blue-800 px-4 py-2 rounded w-full">
-              🔮 Buy Mana Potion (+20 MP) - 5 Gold
-            </button>
-          </div>
+          <button onClick={buyHealthPotion} className="bg-green-800 px-4 py-2 rounded w-full mb-2">🧪 Buy Health Potion (+30 HP) - 5 Gold</button>
+          <button onClick={buyManaPotion} className="bg-blue-800 px-4 py-2 rounded w-full">🔮 Buy Mana Potion (+20 MP) - 5 Gold</button>
           <div className="bg-gray-800 p-2 mt-4 rounded h-24 overflow-y-auto text-left text-sm">
-            {log.map((entry, idx) => (
-              <div key={idx}>{entry}</div>
-            ))}
+            {log.map((entry, idx) => <div key={idx}>{entry}</div>)}
           </div>
-          <button
-            onClick={() => setEncounterComplete(true)}
-            className="mt-4 bg-purple-700 px-4 py-2 rounded"
-          >
-            ➡️ Leave Shop
-          </button>
+          <button onClick={() => setEncounterComplete(true)} className="mt-4 bg-purple-700 px-4 py-2 rounded">➡️ Leave Shop</button>
         </>
       )}
 
@@ -314,30 +273,16 @@ export default function App() {
         <>
           <h2 className="text-xl my-4">🛏️ Welcome to the Inn</h2>
           <p className="mb-4">Rest to fully recover for 10 Gold</p>
-          <button onClick={restAtInn} className="bg-yellow-700 px-4 py-2 rounded mb-2">
-            🌙 Rest Now
-          </button>
-          <button
-            onClick={() => setEncounterComplete(true)}
-            className="bg-gray-700 px-4 py-2 rounded"
-          >
-            🚪 Leave Inn
-          </button>
+          <button onClick={restAtInn} className="bg-yellow-700 px-4 py-2 rounded mb-2">🌙 Rest Now</button>
+          <button onClick={() => setEncounterComplete(true)} className="bg-gray-700 px-4 py-2 rounded">🚪 Leave Inn</button>
           <div className="bg-gray-800 p-2 mt-4 rounded h-24 overflow-y-auto text-left text-sm">
-            {log.map((entry, idx) => (
-              <div key={idx}>{entry}</div>
-            ))}
+            {log.map((entry, idx) => <div key={idx}>{entry}</div>)}
           </div>
         </>
       )}
 
       {encounterComplete && (
-        <button
-          onClick={startNextEncounter}
-          className="mt-6 bg-purple-700 px-4 py-2 rounded"
-        >
-          ➡️ Continue
-        </button>
+        <button onClick={startNextEncounter} className="mt-6 bg-purple-700 px-4 py-2 rounded">➡️ Continue</button>
       )}
     </div>
   );
