@@ -19,6 +19,14 @@ const getRandomEnemy = (level) => {
   return enemies[Math.floor(Math.random() * enemies.length)];
 };
 
+const getRandomEncounterType = (forceBattle = false) => {
+  if (forceBattle) return "battle";
+  const roll = Math.random();
+  if (roll < 0.7) return "battle";
+  else if (roll < 0.85) return "shop";
+  else return "inn";
+};
+
 export default function App() {
   const [name, setName] = useState("");
   const [nameInput, setNameInput] = useState("");
@@ -26,6 +34,7 @@ export default function App() {
   const [encounterIndex, setEncounterIndex] = useState(0);
   const [encounterType, setEncounterType] = useState(null);
   const [previousEncounterType, setPreviousEncounterType] = useState(null);
+  const [justStarted, setJustStarted] = useState(true);
   const [player, setPlayer] = useState({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0 });
   const [enemy, setEnemy] = useState({ name: "", health: 0 });
   const [log, setLog] = useState([]);
@@ -38,7 +47,7 @@ export default function App() {
     const savedName = Cookies.get("knightPlayer");
     if (savedName && savedName.trim() !== "") {
       setName(savedName);
-      startNextEncounter(true);
+      startNextEncounter();
     } else {
       Cookies.remove("knightPlayer");
     }
@@ -49,7 +58,7 @@ export default function App() {
     if (nameInput.trim() !== "") {
       Cookies.set("knightPlayer", nameInput.trim());
       setName(nameInput.trim());
-      startNextEncounter(true);
+      startNextEncounter();
     }
   };
 
@@ -59,19 +68,7 @@ export default function App() {
     setNameInput("");
   };
 
-  const getRandomEncounterType = (isFirstTurn = false) => {
-    if (isFirstTurn) return "battle";
-    let type;
-    do {
-      const roll = Math.random();
-      if (roll < 0.7) type = "battle";
-      else if (roll < 0.85) type = "shop";
-      else type = "inn";
-    } while ((type === previousEncounterType && (type === "shop" || type === "inn")));
-    return type;
-  };
-
-  const startNextEncounter = (isFirstTurn = false) => {
+  const startNextEncounter = () => {
     submitKnightScore(name, level, encounterIndex);
     if (encounterIndex >= 5) {
       setLevel((prev) => prev + 1);
@@ -80,9 +77,11 @@ export default function App() {
       setEncounterIndex((prev) => prev + 1);
     }
 
-    const type = getRandomEncounterType(isFirstTurn);
+    const type = getRandomEncounterType(justStarted);
+    if (justStarted) setJustStarted(false);
 
-    // ✅ Setup enemy BEFORE showing battle screen
+    setLog([]); // ✅ clear log every time
+
     if (type === "battle") {
       const chosen = getRandomEnemy(level);
       setEnemy({ name: chosen.name, health: chosen.baseHP });
@@ -101,6 +100,7 @@ export default function App() {
     setEncounterIndex(0);
     setEncounterType(null);
     setPreviousEncounterType(null);
+    setJustStarted(true);
     setGameEnded(false);
     setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0 });
     setEnemy({ name: "", health: 0 });
@@ -109,7 +109,7 @@ export default function App() {
     setGameOver(false);
     setEncounterComplete(false);
     fetchKnightLeaderboard().then(() => {});
-    startNextEncounter(true); // ✅ triggers first battle properly
+    startNextEncounter();
   };
 
   useEffect(() => {
