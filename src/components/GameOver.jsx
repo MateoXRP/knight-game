@@ -6,27 +6,27 @@ export default function GameOver({ name, level, encounterIndex, restartGame }) {
   const [bestRun, setBestRun] = useState({ level: 0, encounter: 0 });
 
   useEffect(() => {
-    const currentScore = { name, level, encounter: encounterIndex };
+    const currentValue = level * 10 + encounterIndex;
 
-    // Fetch leaderboard and user best score
+    submitKnightScore(name, level, encounterIndex); // ✅ always submit current run
+
     fetchKnightLeaderboard().then((entries) => {
-      setLeaderboard(entries.slice(0, 10));
-
       const userBest = entries.find(e => e.name === name);
       if (userBest) {
-        setBestRun({ level: userBest.level, encounter: userBest.encounter });
-
-        // Update only if this run is better
-        const thisRunValue = level * 10 + encounterIndex;
-        const bestRunValue = userBest.level * 10 + userBest.encounter;
-        if (thisRunValue > bestRunValue) {
-          submitKnightScore(name, level, encounterIndex);
-        }
+        const bestValue = userBest.level * 10 + userBest.encounter;
+        setBestRun(currentValue > bestValue
+          ? { level, encounter: encounterIndex }
+          : { level: userBest.level, encounter: userBest.encounter });
       } else {
-        // First time score
-        submitKnightScore(name, level, encounterIndex);
-        setBestRun(currentScore);
+        setBestRun({ level, encounter: encounterIndex });
       }
+
+      setLeaderboard(
+        entries
+          .concat({ name, level, encounter: encounterIndex })
+          .sort((a, b) => (b.level * 10 + b.encounter) - (a.level * 10 + a.encounter))
+          .slice(0, 10)
+      );
     });
   }, [name, level, encounterIndex]);
 
