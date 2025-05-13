@@ -4,7 +4,7 @@ import { db, submitKnightScore, fetchKnightLeaderboard } from "./firebase";
 import Battle from "./components/Battle";
 import Shop from "./components/Shop";
 import Inn from "./components/Inn";
-import GameOver from "./components/GameOver"; // ✅ NEW
+import GameOver from "./components/GameOver";
 
 const ENEMY_TABLE = {
   1: [{ name: "Goblin 👺", baseHP: 60 }, { name: "Rat 🐀", baseHP: 50 }, { name: "Slime 🟢", baseHP: 40 }],
@@ -60,7 +60,7 @@ export default function App() {
   };
 
   const getRandomEncounterType = (isFirstTurn = false) => {
-    if (isFirstTurn && level === 1 && encounterIndex === 0) return "battle";
+    if (isFirstTurn) return "battle";
     let type;
     do {
       const roll = Math.random();
@@ -79,18 +79,21 @@ export default function App() {
     } else {
       setEncounterIndex((prev) => prev + 1);
     }
+
     const type = getRandomEncounterType(isFirstTurn);
-    setEncounterType(type);
-    setPreviousEncounterType(type);
-    setEncounterComplete(false);
-    setGameOver(false);
-    setIsPlayerTurn(true);
-    setLog([]);
+
+    // ✅ Setup enemy BEFORE showing battle screen
     if (type === "battle") {
       const chosen = getRandomEnemy(level);
       setEnemy({ name: chosen.name, health: chosen.baseHP });
       setLog([`⚔️ A wild ${chosen.name} appears!`]);
     }
+
+    setEncounterType(type);
+    setPreviousEncounterType(type);
+    setEncounterComplete(false);
+    setGameOver(false);
+    setIsPlayerTurn(true);
   };
 
   const restartGame = () => {
@@ -106,12 +109,11 @@ export default function App() {
     setGameOver(false);
     setEncounterComplete(false);
     fetchKnightLeaderboard().then(() => {});
-    startNextEncounter(true);
+    startNextEncounter(true); // ✅ triggers first battle properly
   };
 
   useEffect(() => {
     if (!isPlayerTurn && !gameOver && encounterType === "battle" && enemy.health > 0) {
-      console.log("Enemy attacking...");
       const timer = setTimeout(() => {
         const damage = Math.floor(Math.random() * 10) + 5;
         const newHealth = Math.max(player.health - damage, 0);
