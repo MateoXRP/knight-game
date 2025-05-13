@@ -5,6 +5,10 @@ export default function App() {
   const [name, setName] = useState("");
   const [nameInput, setNameInput] = useState("");
 
+  const [level, setLevel] = useState(1);
+  const [encounterIndex, setEncounterIndex] = useState(0);
+  const [encounterType, setEncounterType] = useState(null);
+
   const [player, setPlayer] = useState({
     health: 100,
     magic: 50,
@@ -13,26 +17,22 @@ export default function App() {
     exp: 0,
   });
 
-  const [enemy, setEnemy] = useState({
-    name: "Goblin 👺",
-    health: 60,
-  });
-
-  const [log, setLog] = useState(["⚔️ A wild Goblin appears!"]);
+  const [enemy, setEnemy] = useState({ name: "", health: 0 });
+  const [log, setLog] = useState([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [gameOver, setGameOver] = useState(false);
+  const [encounterComplete, setEncounterComplete] = useState(false);
 
   useEffect(() => {
     const savedName = Cookies.get("knightPlayer");
-    if (savedName) {
-      setName(savedName);
-    }
+    if (savedName) setName(savedName);
   }, []);
 
   const handleNameSubmit = () => {
     if (nameInput.trim() !== "") {
       Cookies.set("knightPlayer", nameInput.trim());
       setName(nameInput.trim());
+      startNextEncounter();
     }
   };
 
@@ -42,27 +42,56 @@ export default function App() {
     setNameInput("");
   };
 
+  const getRandomEncounterType = () => {
+    const roll = Math.random();
+    if (roll < 0.7) return "battle";
+    if (roll < 0.85) return "shop";
+    return "inn";
+  };
+
+  const startNextEncounter = () => {
+    if (encounterIndex >= 5) {
+      setLevel((prev) => prev + 1);
+      setEncounterIndex(0);
+    } else {
+      setEncounterIndex((prev) => prev + 1);
+    }
+
+    const type = getRandomEncounterType();
+    setEncounterType(type);
+    setEncounterComplete(false);
+    setGameOver(false);
+    setIsPlayerTurn(true);
+    setLog([]);
+
+    if (type === "battle") {
+      setEnemy({
+        name: "Goblin 👺",
+        health: 60 + level * 10,
+      });
+      setLog(["⚔️ A wild Goblin appears!"]);
+    }
+  };
+
+  // --- Battle Logic ---
   const attack = () => {
-    if (!isPlayerTurn || gameOver) return;
+    if (!isPlayerTurn || gameOver || encounterType !== "battle") return;
     const damage = Math.floor(Math.random() * 15) + 5;
-    const newHealth = Math.max(enemy.health - damage, 0);
-    setEnemy((prev) => ({ ...prev, health: newHealth }));
+    setEnemy((prev) => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
     setLog((prev) => [`🗡️ You attack for ${damage} damage!`, ...prev]);
     setIsPlayerTurn(false);
   };
 
   const castSpell = () => {
-    if (!isPlayerTurn || gameOver || player.magic < 10) return;
+    if (!isPlayerTurn || gameOver || player.magic < 10 || encounterType !== "battle") return;
     const damage = Math.floor(Math.random() * 25) + 10;
-    const newHealth = Math.max(enemy.health - damage, 0);
-    setEnemy((prev) => ({ ...prev, health: newHealth }));
+    setEnemy((prev) => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
     setPlayer((prev) => ({ ...prev, magic: prev.magic - 10 }));
     setLog((prev) => [`🔥 You cast a spell for ${damage} damage!`, ...prev]);
     setIsPlayerTurn(false);
   };
 
   const enemyAttack = () => {
-    if (enemy.health <= 0) return;
     const damage = Math.floor(Math.random() * 10) + 5;
     const newHealth = Math.max(player.health - damage, 0);
     setPlayer((prev) => ({ ...prev, health: newHealth }));
@@ -73,6 +102,7 @@ export default function App() {
       if (newLives <= 0) {
         setLog((prev) => ["💀 You have died. Game over!", ...prev]);
         setGameOver(true);
+        setEncounterComplete(true);
       } else {
         setPlayer((prev) => ({
           ...prev,
@@ -80,6 +110,7 @@ export default function App() {
           lives: newLives,
         }));
         setLog((prev) => ["🩸 You lost a life! Revived with full health.", ...prev]);
+        setIsPlayerTurn(true);
       }
     } else {
       setIsPlayerTurn(true);
@@ -87,14 +118,14 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!isPlayerTurn && !gameOver && enemy.health > 0) {
+    if (!isPlayerTurn && !gameOver && encounterType === "battle" && enemy.health > 0) {
       const timer = setTimeout(enemyAttack, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isPlayerTurn, gameOver, enemy.health]);
+  }, [isPlayerTurn, gameOver, enemy.health, encounterType]);
 
   useEffect(() => {
-    if (enemy.health <= 0 && !gameOver) {
+    if (enemy.health <= 0 && !gameOver && encounterType === "battle") {
       setLog((prev) => ["🏆 You defeated the enemy!", ...prev]);
       setPlayer((prev) => ({
         ...prev,
@@ -102,8 +133,9 @@ export default function App() {
         gold: prev.gold + 5,
       }));
       setGameOver(true);
+      setEncounterComplete(true);
     }
-  }, [enemy.health, gameOver]);
+  }, [enemy.health, gameOver, encounterType]);
 
   if (!name) {
     return (
@@ -116,10 +148,7 @@ export default function App() {
           value={nameInput}
           onChange={(e) => setNameInput(e.target.value)}
         />
-        <button
-          onClick={handleNameSubmit}
-          className="bg-green-700 px-4 py-2 rounded"
-        >
+        <button onClick={handleNameSubmit} className="bg-green-700 px-4 py-2 rounded">
           Start Game
         </button>
       </div>
@@ -128,44 +157,63 @@ export default function App() {
 
   return (
     <div className="max-w-md w-full p-4 text-center">
-      <h1 className="text-2xl mb-2">🛡️ Knight Game - Battle</h1>
-      <p className="mb-4">Welcome, {name}!</p>
-      <button
-        onClick={handleSwitchUser}
-        className="bg-red-700 px-2 py-1 rounded text-sm mb-4"
-      >
+      <h1 className="text-2xl mb-1">🛡️ Knight Game</h1>
+      <p className="mb-2">Welcome, {name}!</p>
+      <p className="mb-4">🌍 Level {level} — Encounter {encounterIndex}/5 ({encounterType})</p>
+      <button onClick={handleSwitchUser} className="bg-red-700 px-2 py-1 rounded text-sm mb-4">
         🔄 Switch User
       </button>
 
-      <div className="mb-2">
-        <strong>Player</strong><br />
-        ❤️ {player.health} | 🔮 {player.magic} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
-      </div>
-      <div className="mb-2">
-        <strong>{enemy.name}</strong><br />
-        ❤️ {enemy.health}
-      </div>
-      <div className="space-x-2 my-2">
+      {encounterType === "battle" && (
+        <>
+          <div className="mb-2">
+            <strong>Player</strong><br />
+            ❤️ {player.health} | 🔮 {player.magic} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
+          </div>
+          <div className="mb-2">
+            <strong>{enemy.name}</strong><br />
+            ❤️ {enemy.health}
+          </div>
+          <div className="space-x-2 my-2">
+            <button
+              className="bg-green-700 px-4 py-2 rounded disabled:opacity-50"
+              onClick={attack}
+              disabled={!isPlayerTurn || gameOver}
+            >
+              Attack
+            </button>
+            <button
+              className="bg-blue-700 px-4 py-2 rounded disabled:opacity-50"
+              onClick={castSpell}
+              disabled={!isPlayerTurn || player.magic < 10 || gameOver}
+            >
+              Cast Spell
+            </button>
+          </div>
+          <div className="bg-gray-800 p-2 mt-4 rounded h-40 overflow-y-auto text-left text-sm">
+            {log.map((entry, idx) => (
+              <div key={idx}>{entry}</div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {encounterType === "shop" && (
+        <div className="my-10 text-lg">🛒 You find a shop... (coming soon!)</div>
+      )}
+
+      {encounterType === "inn" && (
+        <div className="my-10 text-lg">🛏️ You rest at an inn and regain strength... (coming soon!)</div>
+      )}
+
+      {encounterComplete && (
         <button
-          className="bg-green-700 px-4 py-2 rounded disabled:opacity-50"
-          onClick={attack}
-          disabled={!isPlayerTurn || gameOver}
+          onClick={startNextEncounter}
+          className="mt-6 bg-purple-700 px-4 py-2 rounded"
         >
-          Attack
+          ➡️ Continue
         </button>
-        <button
-          className="bg-blue-700 px-4 py-2 rounded disabled:opacity-50"
-          onClick={castSpell}
-          disabled={!isPlayerTurn || player.magic < 10 || gameOver}
-        >
-          Cast Spell
-        </button>
-      </div>
-      <div className="bg-gray-800 p-2 mt-4 rounded h-40 overflow-y-auto text-left text-sm">
-        {log.map((entry, idx) => (
-          <div key={idx}>{entry}</div>
-        ))}
-      </div>
+      )}
     </div>
   );
 }
