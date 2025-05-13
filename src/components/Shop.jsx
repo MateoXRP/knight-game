@@ -32,13 +32,13 @@ export default function Shop({ player, setPlayer, setLog, setEncounterComplete, 
   };
 
   const buyLife = () => {
-    if (player.gold < 15) {
+    if (player.gold < 25) {
       setLog(prev => ["❌ Not enough gold for an extra life!", ...prev]);
       return;
     }
     setPlayer(prev => ({
       ...prev,
-      gold: prev.gold - 15,
+      gold: prev.gold - 25,
       lives: prev.lives + 1,
     }));
     setLog(prev => ["💖 You bought an Extra Life (+1 Life)", ...prev]);
@@ -57,7 +57,7 @@ export default function Shop({ player, setPlayer, setLog, setEncounterComplete, 
       </button>
 
       <button onClick={buyLife} className="bg-pink-700 px-4 py-2 rounded w-full mb-2">
-        💖 Buy Extra Life (+1 Life) - 15 Gold
+        💖 Buy Extra Life (+1 Life) - 25 Gold
       </button>
 
       <button onClick={() => setEncounterComplete(true)} className="mt-4 bg-purple-700 px-4 py-2 rounded">
