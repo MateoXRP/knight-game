@@ -1,4 +1,4 @@
-export default function Shop({ player, setPlayer, setLog, setEncounterComplete, log }) {
+export default function Shop({ player, setPlayer, setLog, setEncounterComplete, log, level }) {
   const redRunes = player.runes.filter(r => r === "red");
   const blueRunes = player.runes.filter(r => r === "blue");
 
@@ -32,6 +32,10 @@ export default function Shop({ player, setPlayer, setLog, setEncounterComplete, 
   };
 
   const buyLife = () => {
+    if (level >= 11) {
+      setLog(prev => ["❌ Extra lives are no longer available beyond Level 10!", ...prev]);
+      return;
+    }
     if (player.gold < 25) {
       setLog(prev => ["❌ Not enough gold for an extra life!", ...prev]);
       return;
@@ -56,9 +60,11 @@ export default function Shop({ player, setPlayer, setLog, setEncounterComplete, 
         🔮 Buy Mana Potion (+20 MP) - 5 Gold
       </button>
 
-      <button onClick={buyLife} className="bg-pink-700 px-4 py-2 rounded w-full mb-2">
-        💖 Buy Extra Life (+1 Life) - 25 Gold
-      </button>
+      {level < 11 && (
+        <button onClick={buyLife} className="bg-pink-700 px-4 py-2 rounded w-full mb-2">
+          💖 Buy Extra Life (+1 Life) - 25 Gold
+        </button>
+      )}
 
       <button onClick={() => setEncounterComplete(true)} className="mt-4 bg-purple-700 px-4 py-2 rounded">
         ➡️ Leave Shop

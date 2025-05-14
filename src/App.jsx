@@ -287,6 +287,7 @@ export default function App() {
           setLog={setLog}
           setEncounterComplete={setEncounterComplete}
           log={log}
+	  level={level} 
         />
       )}
 
