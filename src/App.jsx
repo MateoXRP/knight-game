@@ -173,7 +173,7 @@ export default function App() {
           }
         } else {
           setPlayer(prev => ({ ...prev, health: newHealth }));
-          setLog(prev => ["👺 Enemy hits you!", ...prev]);
+          setLog(prev => [`${enemy.name.split(' ').pop()} hits you for ${damage} damage!`, ...prev]);
           setIsPlayerTurn(true);
         }
       }, 1000);
