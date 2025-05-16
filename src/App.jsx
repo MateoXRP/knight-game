@@ -18,6 +18,27 @@ const getRandomEnemy = (level) => {
   return enemies[Math.floor(Math.random() * enemies.length)];
 };
 
+const RUNE_EMOJIS = {
+  red: "🔴",
+  blue: "🔵",
+  yellow: "🟡",
+  purple: "🟣",
+  green: "🟢",
+};
+
+const formatRunes = (runes) => {
+  const counts = runes.reduce((acc, rune) => {
+    acc[rune] = (acc[rune] || 0) + 1;
+    return acc;
+  }, {});
+  return Object.entries(counts)
+    .map(([rune, count]) => `${RUNE_EMOJIS[rune]} x${count}`)
+    .join("  ");
+};
+
+const getMaxHP = (runes) => 100 + 10 * runes.filter(r => r === "red").length;
+const getMaxMP = (runes) => 50 + 10 * runes.filter(r => r === "blue").length;
+
 export default function App() {
   const [name, setName] = useState("");
   const [nameInput, setNameInput] = useState("");
@@ -25,7 +46,7 @@ export default function App() {
   const [encounterIndex, setEncounterIndex] = useState(0);
   const [encounterType, setEncounterType] = useState(null);
   const [previousEncounterType, setPreviousEncounterType] = useState(null);
-  const [player, setPlayer] = useState({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0 });
+  const [player, setPlayer] = useState({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [] });
   const [enemy, setEnemy] = useState({ name: "", health: 0 });
   const [log, setLog] = useState([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
@@ -98,7 +119,7 @@ export default function App() {
     setEncounterType(null);
     setPreviousEncounterType(null);
     setGameEnded(false);
-    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0 });
+    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [] });
     setEnemy({ name: "", health: 0 });
     setLog([]);
     setIsPlayerTurn(true);
@@ -121,7 +142,7 @@ export default function App() {
             setGameOver(true);
             setGameEnded(true);
           } else {
-            setPlayer(prev => ({ ...prev, health: 100, magic: 50, lives: newLives }));
+            setPlayer(prev => ({ ...prev, health: getMaxHP(prev.runes), magic: getMaxMP(prev.runes), lives: newLives }));
             setLog(prev => ["🩸 You lost a life! Revived with full health and magic.", ...prev]);
             setIsPlayerTurn(true);
           }
@@ -138,7 +159,16 @@ export default function App() {
   useEffect(() => {
     if (enemy.health <= 0 && !gameOver && encounterType === "battle") {
       setLog((prev) => ["🏆 You defeated the enemy!", ...prev]);
-      setPlayer((prev) => ({ ...prev, exp: prev.exp + 10, gold: prev.gold + 5 }));
+      setPlayer((prev) => {
+        const updated = { ...prev, exp: prev.exp + 10, gold: prev.gold + 5 };
+        if (Math.random() < 0.25) {
+          const runeTypes = ["red", "blue", "yellow", "purple", "green"];
+          const found = runeTypes[Math.floor(Math.random() * runeTypes.length)];
+          updated.runes = [...(prev.runes || []), found];
+          setLog(prevLog => [`✨ You found a ${RUNE_EMOJIS[found]} rune!`, ...prevLog]);
+        }
+        return updated;
+      });
       setGameOver(true);
       setEncounterComplete(true);
     }
@@ -174,6 +204,9 @@ export default function App() {
     );
   }
 
+  const maxHP = getMaxHP(player.runes || []);
+  const maxMP = getMaxMP(player.runes || []);
+
   return (
     <div className="text-white bg-black min-h-screen p-4 flex flex-col items-center justify-center max-w-md mx-auto">
       <h1 className="text-2xl mb-1">🛡️ Knight Game</h1>
@@ -181,9 +214,12 @@ export default function App() {
       <p className="mb-4">🌍 Level {level} — Encounter {encounterIndex}/5 ({encounterType})</p>
       <button onClick={handleSwitchUser} className="bg-red-700 px-2 py-1 rounded text-sm mb-4">🔄 Switch User</button>
 
-      <div className="mb-4">
+      <div className="mb-2">
         <strong>Player</strong><br />
-        ❤️ {player.health} | 🔮 {player.magic} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
+        ❤️ {player.health} / {maxHP} | 🔮 {player.magic} / {maxMP} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
+      </div>
+      <div className="mb-4">
+        <strong>Runes:</strong> {formatRunes(player.runes || [])}
       </div>
 
       {encounterType === "battle" && (
@@ -212,7 +248,7 @@ export default function App() {
 
       {encounterType === "shop" && (
         <Shop
-          player={player}
+          player={{ ...player, level }}
           setPlayer={setPlayer}
           setLog={setLog}
           setEncounterComplete={setEncounterComplete}
