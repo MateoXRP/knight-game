@@ -33,7 +33,7 @@ export default function Battle({
         </button>
       </div>
 
-      <div className="bg-gray-800 p-2 mt-4 rounded h-40 overflow-y-auto text-left text-sm">
+      <div className="bg-gray-800 p-2 mt-4 rounded h-40 overflow-y-auto text-left text-sm max-w-md mx-auto">
         {log.map((entry, idx) => (
           <div key={idx}>{entry}</div>
         ))}
