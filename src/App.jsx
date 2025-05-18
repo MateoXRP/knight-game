@@ -78,6 +78,17 @@ export default function App() {
     Cookies.remove("knightPlayer");
     setName("");
     setNameInput("");
+    setLevel(1);
+    setEncounterIndex(0);
+    setEncounterType(null);
+    setPreviousEncounterType(null);
+    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [] });
+    setEnemy({ name: "", health: 0 });
+    setLog([]);
+    setIsPlayerTurn(true);
+    setGameOver(false);
+    setGameEnded(false);
+    setEncounterComplete(false);
   };
 
   const getRandomEncounterType = (isFirstTurn = false) => {
