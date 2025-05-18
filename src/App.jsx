@@ -92,7 +92,7 @@ export default function App() {
   };
 
   const getRandomEncounterType = (isFirstTurn = false) => {
-    if (isFirstTurn && level === 1 && encounterIndex === 0) return "battle";
+    if (isFirstTurn && level === 1 && encounterIndex === 1) return "battle";
     let type;
     do {
       const roll = Math.random();
@@ -105,12 +105,16 @@ export default function App() {
 
   const startNextEncounter = (isFirstTurn = false) => {
     submitKnightScore(name, level, encounterIndex);
-    if (encounterIndex >= 5) {
+
+    if (encounterIndex === 0) {
+      setEncounterIndex(1);
+    } else if (encounterIndex >= 5) {
       setLevel((prev) => prev + 1);
-      setEncounterIndex(0);
+      setEncounterIndex(1);
     } else {
       setEncounterIndex((prev) => prev + 1);
     }
+
     const type = getRandomEncounterType(isFirstTurn);
     setEncounterType(type);
     setPreviousEncounterType(type);
@@ -118,6 +122,7 @@ export default function App() {
     setGameOver(false);
     setIsPlayerTurn(true);
     setLog([]);
+
     if (type === "battle") {
       const chosen = getRandomEnemy(level);
       setEnemy({ name: chosen.name, health: chosen.baseHP });
