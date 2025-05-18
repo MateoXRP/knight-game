@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import { db, submitKnightScore, fetchKnightLeaderboard } from "./firebase";
 import Battle from "./components/Battle";
@@ -54,23 +54,33 @@ export default function App() {
   const [gameOver, setGameOver] = useState(false);
   const [gameEnded, setGameEnded] = useState(false);
   const [encounterComplete, setEncounterComplete] = useState(false);
+  const [shouldStartFresh, setShouldStartFresh] = useState(false);
+
+  const runeAwardedRef = useRef(false);
 
   useEffect(() => {
     const savedName = Cookies.get("knightPlayer");
     if (savedName && savedName.trim() !== "") {
       setName(savedName);
-      startNextEncounter(true);
+      setShouldStartFresh(true);
     } else {
       Cookies.remove("knightPlayer");
     }
     fetchKnightLeaderboard().then(() => {});
   }, []);
 
+  useEffect(() => {
+    if (shouldStartFresh) {
+      setShouldStartFresh(false);
+      startNextEncounter(true);
+    }
+  }, [shouldStartFresh]);
+
   const handleNameSubmit = () => {
     if (nameInput.trim() !== "") {
       Cookies.set("knightPlayer", nameInput.trim());
       setName(nameInput.trim());
-      startNextEncounter(true);
+      setShouldStartFresh(true);
     }
   };
 
@@ -91,8 +101,8 @@ export default function App() {
     setEncounterComplete(false);
   };
 
-  const getRandomEncounterType = (isFirstTurn = false) => {
-    if (isFirstTurn && level === 1 && encounterIndex === 1) return "battle";
+  const getRandomEncounterType = (isFirstTurn = false, lvl = level, idx = encounterIndex) => {
+    if (isFirstTurn && lvl === 1 && idx === 1) return "battle";
     let type;
     do {
       const roll = Math.random();
@@ -106,16 +116,24 @@ export default function App() {
   const startNextEncounter = (isFirstTurn = false) => {
     submitKnightScore(name, level, encounterIndex);
 
+    runeAwardedRef.current = false;
+
+    let nextLevel = level;
+    let nextEncounter = encounterIndex;
+
     if (encounterIndex === 0) {
-      setEncounterIndex(1);
+      nextEncounter = 1;
     } else if (encounterIndex >= 5) {
-      setLevel((prev) => prev + 1);
-      setEncounterIndex(1);
+      nextLevel += 1;
+      nextEncounter = 1;
     } else {
-      setEncounterIndex((prev) => prev + 1);
+      nextEncounter += 1;
     }
 
-    const type = getRandomEncounterType(isFirstTurn);
+    setLevel(nextLevel);
+    setEncounterIndex(nextEncounter);
+
+    const type = getRandomEncounterType(isFirstTurn, nextLevel, nextEncounter);
     setEncounterType(type);
     setPreviousEncounterType(type);
     setEncounterComplete(false);
@@ -124,7 +142,7 @@ export default function App() {
     setLog([]);
 
     if (type === "battle") {
-      const chosen = getRandomEnemy(level);
+      const chosen = getRandomEnemy(nextLevel);
       setEnemy({ name: chosen.name, health: chosen.baseHP });
       setLog([`⚔️ A wild ${chosen.name} appears!`]);
     }
@@ -142,8 +160,7 @@ export default function App() {
     setIsPlayerTurn(true);
     setGameOver(false);
     setEncounterComplete(false);
-    fetchKnightLeaderboard().then(() => {});
-    startNextEncounter(true);
+    setShouldStartFresh(true);
   };
 
   useEffect(() => {
@@ -159,7 +176,12 @@ export default function App() {
             setGameOver(true);
             setGameEnded(true);
           } else {
-            setPlayer(prev => ({ ...prev, health: getMaxHP(prev.runes), magic: getMaxMP(prev.runes), lives: newLives }));
+            setPlayer(prev => ({
+              ...prev,
+              health: getMaxHP(prev.runes),
+              magic: getMaxMP(prev.runes),
+              lives: newLives
+            }));
             setLog(prev => ["🩸 You lost a life! Revived with full health and magic.", ...prev]);
             setIsPlayerTurn(true);
           }
@@ -174,18 +196,33 @@ export default function App() {
   }, [isPlayerTurn, gameOver, encounterType, enemy.health, player.health]);
 
   useEffect(() => {
-    if (enemy.health <= 0 && !gameOver && encounterType === "battle") {
-      setLog((prev) => ["🏆 You defeated the enemy!", ...prev]);
-      setPlayer((prev) => {
-        const updated = { ...prev, exp: prev.exp + 10, gold: prev.gold + 5 };
-        if (Math.random() < 0.25) {
-          const runeTypes = ["red", "blue", "yellow", "purple", "green"];
-          const found = runeTypes[Math.floor(Math.random() * runeTypes.length)];
-          updated.runes = [...(prev.runes || []), found];
-          setLog(prevLog => [`✨ You found a ${RUNE_EMOJIS[found]} rune!`, ...prevLog]);
-        }
-        return updated;
+    if (
+      enemy.health <= 0 &&
+      !gameOver &&
+      encounterType === "battle" &&
+      !runeAwardedRef.current
+    ) {
+      runeAwardedRef.current = true;
+
+      let foundRune = null;
+      if (Math.random() < 0.25) {
+        const runeTypes = ["red", "blue", "yellow", "purple", "green"];
+        foundRune = runeTypes[Math.floor(Math.random() * runeTypes.length)];
+      }
+
+      setPlayer(prev => ({
+        ...prev,
+        exp: prev.exp + 10,
+        gold: prev.gold + 5,
+        runes: foundRune ? [...prev.runes, foundRune] : prev.runes
+      }));
+
+      setLog(prev => {
+        const base = ["🏆 You defeated the enemy!"];
+        if (foundRune) base.unshift(`✨ You found a ${RUNE_EMOJIS[foundRune]} rune!`);
+        return [...base, ...prev];
       });
+
       setGameOver(true);
       setEncounterComplete(true);
     }

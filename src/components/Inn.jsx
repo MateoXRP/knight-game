@@ -1,10 +1,18 @@
 export default function Inn({ player, setPlayer, setLog, setEncounterComplete, log }) {
+  const maxHP = 100 + 10 * (player.runes?.filter(r => r === "red").length || 0);
+  const maxMP = 50 + 10 * (player.runes?.filter(r => r === "blue").length || 0);
+
   const rest = () => {
     if (player.gold < 10) {
       setLog(prev => ["❌ Not enough gold to rest at the inn!", ...prev]);
       return;
     }
-    setPlayer(prev => ({ ...prev, gold: prev.gold - 10, health: 100, magic: 50 }));
+    setPlayer(prev => ({
+      ...prev,
+      gold: prev.gold - 10,
+      health: maxHP,
+      magic: maxMP,
+    }));
     setLog(prev => ["🛏️ You rested at the inn. Fully healed!", ...prev]);
     setEncounterComplete(true);
   };
