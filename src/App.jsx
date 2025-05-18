@@ -4,6 +4,7 @@ import { db, submitKnightScore, fetchKnightLeaderboard } from "./firebase";
 import Battle from "./components/Battle";
 import Shop from "./components/Shop";
 import Inn from "./components/Inn";
+import GameOver from "./components/GameOver";
 
 const ENEMY_TABLE = {
   1: [{ name: "Goblin 👺", baseHP: 60 }, { name: "Rat 🐀", baseHP: 50 }, { name: "Slime 🟢", baseHP: 40 }],
@@ -194,13 +195,12 @@ export default function App() {
 
   if (gameEnded) {
     return (
-      <div className="text-white bg-black min-h-screen flex flex-col items-center justify-center p-4">
-        <h1 className="text-3xl mb-4">💀 Game Over</h1>
-        <p className="mb-4">You fought bravely, {name}.</p>
-        <button onClick={restartGame} className="bg-purple-700 px-6 py-3 rounded text-lg">
-          🔁 Restart Game
-        </button>
-      </div>
+      <GameOver
+        name={name}
+        level={level}
+        encounterIndex={encounterIndex}
+        restartGame={restartGame}
+      />
     );
   }
 
