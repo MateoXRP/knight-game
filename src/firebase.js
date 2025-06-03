@@ -22,25 +22,27 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// ✅ Submit or update user's best Knight Game score
-export async function submitKnightScore(name, level, encounter) {
+// Submit or update user's best score and total rune count
+export async function submitKnightProgress(name, level, encounter, newRunes = []) {
   const ref = doc(db, "knight_leaderboard", name);
   const current = level * 10 + encounter;
 
   const snapshot = await getDoc(ref);
-  if (snapshot.exists()) {
-    const existing = snapshot.data();
-    const previous = existing.level * 10 + existing.encounter;
+  const existing = snapshot.exists() ? snapshot.data() : {};
+  const previous = (existing.level ?? 0) * 10 + (existing.encounter ?? 0);
 
-    if (current > previous) {
-      await setDoc(ref, { name, level, encounter });
-    }
-  } else {
-    await setDoc(ref, { name, level, encounter });
-  }
+  const prevRuneCount = typeof existing.totalRunes === "number" ? existing.totalRunes : 0;
+  const currentRuneCount = newRunes.length;
+
+  await setDoc(ref, {
+    name,
+    level: current > previous ? level : (existing.level ?? 0),
+    encounter: current > previous ? encounter : (existing.encounter ?? 0),
+    totalRunes: prevRuneCount + currentRuneCount,
+  });
 }
 
-// ✅ Fetch top 10 Knight Game scores
+// Fetch top 10 scores
 export async function fetchKnightLeaderboard() {
   const snapshot = await getDocs(collection(db, "knight_leaderboard"));
   const scores = snapshot.docs.map(doc => doc.data());

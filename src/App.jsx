@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
-import { db, submitKnightScore, fetchKnightLeaderboard } from "./firebase";
+import { submitKnightProgress, fetchKnightLeaderboard } from "./firebase";
 import Battle from "./components/Battle";
 import Shop from "./components/Shop";
 import Inn from "./components/Inn";
@@ -66,7 +66,7 @@ export default function App() {
     } else {
       Cookies.remove("knightPlayer");
     }
-    fetchKnightLeaderboard().then(() => {});
+    fetchKnightLeaderboard();
   }, []);
 
   useEffect(() => {
@@ -100,7 +100,6 @@ export default function App() {
     setGameEnded(false);
     setEncounterComplete(false);
   };
-
   const getRandomEncounterType = (isFirstTurn = false, lvl = level, idx = encounterIndex) => {
     if (isFirstTurn && lvl === 1 && idx === 1) return "battle";
     let type;
@@ -114,21 +113,16 @@ export default function App() {
   };
 
   const startNextEncounter = (isFirstTurn = false) => {
-    submitKnightScore(name, level, encounterIndex);
-
     runeAwardedRef.current = false;
 
     let nextLevel = level;
     let nextEncounter = encounterIndex;
 
-    if (encounterIndex === 0) {
-      nextEncounter = 1;
-    } else if (encounterIndex >= 5) {
+    if (encounterIndex === 0) nextEncounter = 1;
+    else if (encounterIndex >= 5) {
       nextLevel += 1;
       nextEncounter = 1;
-    } else {
-      nextEncounter += 1;
-    }
+    } else nextEncounter += 1;
 
     setLevel(nextLevel);
     setEncounterIndex(nextEncounter);
@@ -166,7 +160,9 @@ export default function App() {
   useEffect(() => {
     if (!isPlayerTurn && !gameOver && encounterType === "battle" && enemy.health > 0) {
       const timer = setTimeout(() => {
-        const damage = Math.floor(Math.random() * 10) + 5;
+        let damage = Math.floor(Math.random() * 10) + 5;
+        const greenCount = player.runes.filter(r => r === "green").length;
+        damage = Math.floor(damage * (1 - 0.25 * greenCount));
         const newHealth = Math.max(player.health - damage, 0);
 
         if (newHealth <= 0) {
@@ -203,19 +199,26 @@ export default function App() {
       !runeAwardedRef.current
     ) {
       runeAwardedRef.current = true;
-
       let foundRune = null;
       if (Math.random() < 0.25) {
         const runeTypes = ["red", "blue", "yellow", "purple", "green"];
         foundRune = runeTypes[Math.floor(Math.random() * runeTypes.length)];
       }
 
-      setPlayer(prev => ({
-        ...prev,
-        exp: prev.exp + 10,
-        gold: prev.gold + 5,
-        runes: foundRune ? [...prev.runes, foundRune] : prev.runes
-      }));
+      const nextLevel = encounterIndex >= 5 ? level + 1 : level;
+      const nextEncounter = encounterIndex >= 5 ? 1 : encounterIndex + 1;
+
+      setPlayer(prev => {
+        const newRunes = foundRune ? [...prev.runes, foundRune] : prev.runes;
+        return {
+          ...prev,
+          exp: prev.exp + 10,
+          gold: prev.gold + 5,
+          runes: newRunes,
+          health: foundRune === "red" ? getMaxHP(newRunes) : prev.health,
+          magic: foundRune === "blue" ? getMaxMP(newRunes) : prev.magic,
+        };
+      });
 
       setLog(prev => {
         const base = ["🏆 You defeated the enemy!"];
@@ -225,8 +228,17 @@ export default function App() {
 
       setGameOver(true);
       setEncounterComplete(true);
+
+      // ✅ Always submit progress, only include rune if found
+      const runePayload = foundRune ? [foundRune] : [];
+      submitKnightProgress(name, nextLevel, nextEncounter, runePayload);
     }
   }, [enemy.health, gameOver, encounterType]);
+
+  const maxHP = getMaxHP(player.runes);
+  const maxMP = getMaxMP(player.runes);
+  const yellowBoost = 1 + 0.25 * player.runes.filter(r => r === "yellow").length;
+  const purpleBoost = 1 + 0.25 * player.runes.filter(r => r === "purple").length;
 
   if (!name || name.trim() === "") {
     return (
@@ -257,9 +269,6 @@ export default function App() {
     );
   }
 
-  const maxHP = getMaxHP(player.runes || []);
-  const maxMP = getMaxMP(player.runes || []);
-
   return (
     <div className="text-white bg-black min-h-screen p-4 flex flex-col items-center justify-center max-w-md mx-auto">
       <h1 className="text-2xl mb-1">🛡️ Knight Game</h1>
@@ -272,7 +281,7 @@ export default function App() {
         ❤️ {player.health} / {maxHP} | 🔮 {player.magic} / {maxMP} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
       </div>
       <div className="mb-4">
-        <strong>Runes:</strong> {formatRunes(player.runes || [])}
+        <strong>Runes:</strong> {formatRunes(player.runes)}
       </div>
 
       {encounterType === "battle" && (
@@ -283,14 +292,16 @@ export default function App() {
           canCast={player.magic >= 10}
           disabled={gameOver}
           onAttack={() => {
-            const damage = Math.floor(Math.random() * 15) + 5;
+            let damage = Math.floor(Math.random() * 15) + 5;
+            damage = Math.floor(damage * yellowBoost);
             setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
             setLog(prev => [`🗡️ You attack for ${damage} damage!`, ...prev]);
             setIsPlayerTurn(false);
           }}
           onCastSpell={() => {
             if (player.magic < 10) return;
-            const damage = Math.floor(Math.random() * 25) + 10;
+            let damage = Math.floor(Math.random() * 25) + 10;
+            damage = Math.floor(damage * purpleBoost);
             setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
             setPlayer(prev => ({ ...prev, magic: prev.magic - 10 }));
             setLog(prev => [`🔥 You cast a spell for ${damage} damage!`, ...prev]);
