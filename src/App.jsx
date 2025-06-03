@@ -14,9 +14,18 @@ const ENEMY_TABLE = {
   5: [{ name: "Zombie 🧟", baseHP: 100 }, { name: "Crocodile 🐊", baseHP: 110 }, { name: "Witch 🧙", baseHP: 90 }],
 };
 
-const getRandomEnemy = (level) => {
-  const enemies = ENEMY_TABLE[level] || ENEMY_TABLE[5];
-  return enemies[Math.floor(Math.random() * enemies.length)];
+const getRandomEnemy = (level, encounter) => {
+  const baseList = ENEMY_TABLE[level] || ENEMY_TABLE[5];
+  const chosen = baseList[Math.floor(Math.random() * baseList.length)];
+
+  const scaleFactor = 1 + (level - 1) * 0.15 + (encounter - 1) * 0.05;
+
+  return {
+    name: chosen.name,
+    health: Math.floor(chosen.baseHP * scaleFactor),
+    atk: Math.floor(10 * scaleFactor),
+    def: Math.floor(2 * scaleFactor)
+  };
 };
 
 const RUNE_EMOJIS = {
@@ -48,7 +57,7 @@ export default function App() {
   const [encounterType, setEncounterType] = useState(null);
   const [previousEncounterType, setPreviousEncounterType] = useState(null);
   const [player, setPlayer] = useState({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [] });
-  const [enemy, setEnemy] = useState({ name: "", health: 0 });
+  const [enemy, setEnemy] = useState({ name: "", health: 0, atk: 10, def: 2 });
   const [log, setLog] = useState([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [gameOver, setGameOver] = useState(false);
@@ -93,15 +102,18 @@ export default function App() {
     setEncounterType(null);
     setPreviousEncounterType(null);
     setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [] });
-    setEnemy({ name: "", health: 0 });
+    setEnemy({ name: "", health: 0, atk: 10, def: 2 });
     setLog([]);
     setIsPlayerTurn(true);
     setGameOver(false);
     setGameEnded(false);
     setEncounterComplete(false);
   };
+
   const getRandomEncounterType = (isFirstTurn = false, lvl = level, idx = encounterIndex) => {
     if (isFirstTurn && lvl === 1 && idx === 1) return "battle";
+    if (lvl > 20) return "battle"; // no shop/inn after level 20
+
     let type;
     do {
       const roll = Math.random();
@@ -111,7 +123,6 @@ export default function App() {
     } while ((type === previousEncounterType && (type === "shop" || type === "inn")));
     return type;
   };
-
   const startNextEncounter = (isFirstTurn = false) => {
     runeAwardedRef.current = false;
 
@@ -136,8 +147,8 @@ export default function App() {
     setLog([]);
 
     if (type === "battle") {
-      const chosen = getRandomEnemy(nextLevel);
-      setEnemy({ name: chosen.name, health: chosen.baseHP });
+      const chosen = getRandomEnemy(nextLevel, nextEncounter);
+      setEnemy(chosen);
       setLog([`⚔️ A wild ${chosen.name} appears!`]);
     }
   };
@@ -149,7 +160,7 @@ export default function App() {
     setPreviousEncounterType(null);
     setGameEnded(false);
     setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [] });
-    setEnemy({ name: "", health: 0 });
+    setEnemy({ name: "", health: 0, atk: 10, def: 2 });
     setLog([]);
     setIsPlayerTurn(true);
     setGameOver(false);
@@ -160,10 +171,11 @@ export default function App() {
   useEffect(() => {
     if (!isPlayerTurn && !gameOver && encounterType === "battle" && enemy.health > 0) {
       const timer = setTimeout(() => {
-        let damage = Math.floor(Math.random() * 10) + 5;
         const greenCount = player.runes.filter(r => r === "green").length;
-        damage = Math.floor(damage * (1 - 0.25 * greenCount));
-        const newHealth = Math.max(player.health - damage, 0);
+        const defenseFactor = 1 - 0.25 * greenCount;
+        const base = Math.floor(Math.random() * (enemy.atk / 2)) + (enemy.atk / 2);
+        const netDamage = Math.max(Math.floor(base * defenseFactor), 1);
+        const newHealth = Math.max(player.health - netDamage, 0);
 
         if (newHealth <= 0) {
           const newLives = player.lives - 1;
@@ -183,13 +195,13 @@ export default function App() {
           }
         } else {
           setPlayer(prev => ({ ...prev, health: newHealth }));
-          setLog(prev => [`${enemy.name} hits you for ${damage} damage!`, ...prev]);
+          setLog(prev => [`${enemy.name} hits you for ${netDamage} damage!`, ...prev]);
           setIsPlayerTurn(true);
         }
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [isPlayerTurn, gameOver, encounterType, enemy.health, player.health]);
+  }, [isPlayerTurn, gameOver, encounterType, enemy, player]);
 
   useEffect(() => {
     if (
@@ -200,7 +212,8 @@ export default function App() {
     ) {
       runeAwardedRef.current = true;
       let foundRune = null;
-      if (Math.random() < 0.25) {
+
+      if (level <= 20 && Math.random() < 0.25) {
         const runeTypes = ["red", "blue", "yellow", "purple", "green"];
         foundRune = runeTypes[Math.floor(Math.random() * runeTypes.length)];
       }
@@ -229,7 +242,6 @@ export default function App() {
       setGameOver(true);
       setEncounterComplete(true);
 
-      // ✅ Always submit progress, only include rune if found
       const runePayload = foundRune ? [foundRune] : [];
       submitKnightProgress(name, nextLevel, nextEncounter, runePayload);
     }
@@ -294,6 +306,7 @@ export default function App() {
           onAttack={() => {
             let damage = Math.floor(Math.random() * 15) + 5;
             damage = Math.floor(damage * yellowBoost);
+            damage = Math.max(damage - enemy.def, 1);
             setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
             setLog(prev => [`🗡️ You attack for ${damage} damage!`, ...prev]);
             setIsPlayerTurn(false);
@@ -302,6 +315,7 @@ export default function App() {
             if (player.magic < 10) return;
             let damage = Math.floor(Math.random() * 25) + 10;
             damage = Math.floor(damage * purpleBoost);
+            damage = Math.max(damage - enemy.def, 1);
             setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
             setPlayer(prev => ({ ...prev, magic: prev.magic - 10 }));
             setLog(prev => [`🔥 You cast a spell for ${damage} damage!`, ...prev]);
