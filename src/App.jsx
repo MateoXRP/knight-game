@@ -6,6 +6,7 @@ import Shop from "./components/Shop";
 import Inn from "./components/Inn";
 import GameOver from "./components/GameOver";
 
+
 const ENEMY_TABLE = {
   1: [{ name: "Goblin 👺", baseHP: 60 }, { name: "Rat 🐀", baseHP: 50 }, { name: "Slime 🟢", baseHP: 40 }],
   2: [{ name: "Wolf 🐺", baseHP: 70 }, { name: "Spider 🕷", baseHP: 60 }, { name: "Treant 🌲", baseHP: 80 }],
@@ -28,26 +29,14 @@ const getRandomEnemy = (level, encounter) => {
   };
 };
 
-const RUNE_EMOJIS = {
-  red: "🔴",
-  blue: "🔵",
-  yellow: "🟡",
-  purple: "🟣",
-  green: "🟢",
-};
+import {
+  RUNE_EMOJIS,
+  formatRunes,
+  getMaxHP,
+  getMaxMP,
+  getRuneBoost
+} from "./utils/runes";
 
-const formatRunes = (runes) => {
-  const counts = runes.reduce((acc, rune) => {
-    acc[rune] = (acc[rune] || 0) + 1;
-    return acc;
-  }, {});
-  return Object.entries(counts)
-    .map(([rune, count]) => `${RUNE_EMOJIS[rune]} x${count}`)
-    .join("  ");
-};
-
-const getMaxHP = (runes) => 100 + 10 * runes.filter(r => r === "red").length;
-const getMaxMP = (runes) => 50 + 10 * runes.filter(r => r === "blue").length;
 
 export default function App() {
   const [name, setName] = useState("");
@@ -249,8 +238,9 @@ export default function App() {
 
   const maxHP = getMaxHP(player.runes);
   const maxMP = getMaxMP(player.runes);
-  const yellowBoost = 1 + 0.25 * player.runes.filter(r => r === "yellow").length;
-  const purpleBoost = 1 + 0.25 * player.runes.filter(r => r === "purple").length;
+  const yellowBoost = getRuneBoost(player.runes, "yellow");
+  const purpleBoost = getRuneBoost(player.runes, "purple");
+  
 
   if (!name || name.trim() === "") {
     return (
