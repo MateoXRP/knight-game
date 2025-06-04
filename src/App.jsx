@@ -169,10 +169,12 @@ export default function App() {
         if (newHealth <= 0) {
           const newLives = player.lives - 1;
           if (newLives <= 0) {
+            submitKnightProgress(name, level, encounterIndex, []); // ✅ submit progress even if player died
             setLog(prev => ["💀 You have died. Game over!", ...prev]);
             setGameOver(true);
             setGameEnded(true);
-          } else {
+          }
+         else {
             setPlayer(prev => ({
               ...prev,
               health: getMaxHP(prev.runes),
