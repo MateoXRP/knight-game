@@ -18,7 +18,7 @@ const getRandomEnemy = (level, encounter) => {
   const baseList = ENEMY_TABLE[level] || ENEMY_TABLE[5];
   const chosen = baseList[Math.floor(Math.random() * baseList.length)];
 
-  const scaleFactor = 1 + (level - 1) * 0.15 + (encounter - 1) * 0.05;
+  const scaleFactor = 1 + (level - 1) * 0.075 + (encounter - 1) * 0.025;
 
   return {
     name: chosen.name,
@@ -171,8 +171,8 @@ export default function App() {
   useEffect(() => {
     if (!isPlayerTurn && !gameOver && encounterType === "battle" && enemy.health > 0) {
       const timer = setTimeout(() => {
-        const greenCount = player.runes.filter(r => r === "green").length;
-        const defenseFactor = 1 - 0.25 * greenCount;
+        const greenCount = Math.min(player.runes.filter(r => r === "green").length, 4);
+        const defenseFactor = 1 - 0.20 * greenCount;
         const base = Math.floor(Math.random() * (enemy.atk / 2)) + (enemy.atk / 2);
         const netDamage = Math.max(Math.floor(base * defenseFactor), 1);
         const newHealth = Math.max(player.health - netDamage, 0);
