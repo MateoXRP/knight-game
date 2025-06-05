@@ -1,3 +1,5 @@
+// App.jsx
+
 import { useState, useEffect, useRef } from "react";
 import Cookies from "js-cookie";
 import { submitKnightProgress, fetchKnightLeaderboard } from "./firebase";
@@ -8,7 +10,6 @@ import GameOver from "./components/GameOver";
 import { getRandomEnemy } from "./utils/enemy";
 import PlayerStats from "./components/PlayerStats";
 
-
 import {
   RUNE_EMOJIS,
   formatRunes,
@@ -17,7 +18,6 @@ import {
   getRuneBoost
 } from "./utils/runes";
 
-
 export default function App() {
   const [name, setName] = useState("");
   const [nameInput, setNameInput] = useState("");
@@ -25,7 +25,7 @@ export default function App() {
   const [encounterIndex, setEncounterIndex] = useState(0);
   const [encounterType, setEncounterType] = useState(null);
   const [previousEncounterType, setPreviousEncounterType] = useState(null);
-  const [player, setPlayer] = useState({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [] });
+  const [player, setPlayer] = useState({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [], kills: 0 });
   const [enemy, setEnemy] = useState({ name: "", health: 0, atk: 10, def: 2 });
   const [log, setLog] = useState([]);
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
@@ -70,7 +70,7 @@ export default function App() {
     setEncounterIndex(0);
     setEncounterType(null);
     setPreviousEncounterType(null);
-    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [] });
+    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [], kills: 0 });
     setEnemy({ name: "", health: 0, atk: 10, def: 2 });
     setLog([]);
     setIsPlayerTurn(true);
@@ -81,8 +81,7 @@ export default function App() {
 
   const getRandomEncounterType = (isFirstTurn = false, lvl = level, idx = encounterIndex) => {
     if (isFirstTurn && lvl === 1 && idx === 1) return "battle";
-    if (lvl > 20) return "battle"; // no shop/inn after level 20
-
+    if (lvl > 20) return "battle";
     let type;
     do {
       const roll = Math.random();
@@ -92,6 +91,7 @@ export default function App() {
     } while ((type === previousEncounterType && (type === "shop" || type === "inn")));
     return type;
   };
+
   const startNextEncounter = (isFirstTurn = false) => {
     runeAwardedRef.current = false;
 
@@ -128,7 +128,7 @@ export default function App() {
     setEncounterType(null);
     setPreviousEncounterType(null);
     setGameEnded(false);
-    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [] });
+    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [], kills: 0 });
     setEnemy({ name: "", health: 0, atk: 10, def: 2 });
     setLog([]);
     setIsPlayerTurn(true);
@@ -149,12 +149,11 @@ export default function App() {
         if (newHealth <= 0) {
           const newLives = player.lives - 1;
           if (newLives <= 0) {
-            submitKnightProgress(name, level, encounterIndex, []); // ✅ submit progress even if player died
+            submitKnightProgress(name, level, encounterIndex, []);
             setLog(prev => ["💀 You have died. Game over!", ...prev]);
             setGameOver(true);
             setGameEnded(true);
-          }
-         else {
+          } else {
             setPlayer(prev => ({
               ...prev,
               health: getMaxHP(prev.runes),
@@ -199,6 +198,7 @@ export default function App() {
           exp: prev.exp + 10,
           gold: prev.gold + 5,
           runes: newRunes,
+          kills: prev.kills + 1,
           health: foundRune === "red" ? getMaxHP(newRunes) : prev.health,
           magic: foundRune === "blue" ? getMaxMP(newRunes) : prev.magic,
         };
@@ -222,7 +222,6 @@ export default function App() {
   const maxMP = getMaxMP(player.runes);
   const yellowBoost = getRuneBoost(player.runes, "yellow");
   const purpleBoost = getRuneBoost(player.runes, "purple");
-  
 
   if (!name || name.trim() === "") {
     return (
