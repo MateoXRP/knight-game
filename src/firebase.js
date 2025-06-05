@@ -1,14 +1,14 @@
+// firebase.js
 import { initializeApp } from "firebase/app";
 import {
   getFirestore,
   doc,
   getDoc,
-  setDoc,
   getDocs,
-  collection
+  setDoc,
+  collection,
 } from "firebase/firestore";
 
-// Firebase config from environment variables
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -18,36 +18,49 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+const db = getFirestore(app);
 
-// Submit or update user's best score and total rune count
-export async function submitKnightProgress(name, level, encounter, newRunes = []) {
-  const ref = doc(db, "knight_leaderboard", name);
-  const current = level * 10 + encounter;
+// 📝 Submit Knight Game Progress
+export async function submitKnightProgress(name, level, encounter, runePayload = [], newKills = 1) {
+  try {
+    const docRef = doc(db, "knight_leaderboard", name);
+    const snapshot = await getDoc(docRef);
 
-  const snapshot = await getDoc(ref);
-  const existing = snapshot.exists() ? snapshot.data() : {};
-  const previous = (existing.level ?? 0) * 10 + (existing.encounter ?? 0);
+    let previousKills = 0;
+    let previousRunes = 0;
 
-  const prevRuneCount = typeof existing.totalRunes === "number" ? existing.totalRunes : 0;
-  const currentRuneCount = newRunes.length;
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      previousKills = typeof data.kills === "number" ? data.kills : 0;
+      previousRunes = typeof data.totalRunes === "number" ? data.totalRunes : 0;
+    }
 
-  await setDoc(ref, {
-    name,
-    level: current > previous ? level : (existing.level ?? 0),
-    encounter: current > previous ? encounter : (existing.encounter ?? 0),
-    totalRunes: prevRuneCount + currentRuneCount,
-  });
+    const newTotalRunes = previousRunes + runePayload.length;
+    const newTotalKills = previousKills + newKills;
+
+    const payload = {
+      name,
+      level,
+      encounter,
+      kills: newTotalKills,
+      totalRunes: newTotalRunes,
+    };
+
+    await setDoc(docRef, payload);
+  } catch (err) {
+    console.error("❌ Firebase write error:", err);
+  }
 }
 
-// Fetch top 10 scores
+// 📊 Fetch Knight Game Leaderboard
 export async function fetchKnightLeaderboard() {
-  const snapshot = await getDocs(collection(db, "knight_leaderboard"));
-  const scores = snapshot.docs.map(doc => doc.data());
-  return scores
-    .sort((a, b) => (b.level * 10 + b.encounter) - (a.level * 10 + a.encounter))
-    .slice(0, 10);
+  try {
+    const snapshot = await getDocs(collection(db, "knight_leaderboard"));
+    return snapshot.docs.map((doc) => doc.data());
+  } catch (err) {
+    console.error("❌ Firebase read error:", err);
+    return [];
+  }
 }
 

@@ -1,6 +1,6 @@
 // App.jsx
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
 import { submitKnightProgress, fetchKnightLeaderboard } from "./firebase";
 import Battle from "./components/Battle";
@@ -12,7 +12,6 @@ import PlayerStats from "./components/PlayerStats";
 
 import {
   RUNE_EMOJIS,
-  formatRunes,
   getMaxHP,
   getMaxMP,
   getRuneBoost
@@ -33,8 +32,7 @@ export default function App() {
   const [gameEnded, setGameEnded] = useState(false);
   const [encounterComplete, setEncounterComplete] = useState(false);
   const [shouldStartFresh, setShouldStartFresh] = useState(false);
-
-  const runeAwardedRef = useRef(false);
+  const [rewardGiven, setRewardGiven] = useState(false);
 
   useEffect(() => {
     const savedName = Cookies.get("knightPlayer");
@@ -77,6 +75,7 @@ export default function App() {
     setGameOver(false);
     setGameEnded(false);
     setEncounterComplete(false);
+    setRewardGiven(false);
   };
 
   const getRandomEncounterType = (isFirstTurn = false, lvl = level, idx = encounterIndex) => {
@@ -93,7 +92,7 @@ export default function App() {
   };
 
   const startNextEncounter = (isFirstTurn = false) => {
-    runeAwardedRef.current = false;
+    setRewardGiven(false);
 
     let nextLevel = level;
     let nextEncounter = encounterIndex;
@@ -135,6 +134,7 @@ export default function App() {
     setGameOver(false);
     setEncounterComplete(false);
     setShouldStartFresh(true);
+    setRewardGiven(false);
   };
 
   useEffect(() => {
@@ -175,14 +175,14 @@ export default function App() {
 
   useEffect(() => {
     if (
-      enemy.health <= 0 &&
+      !rewardGiven &&
       !gameOver &&
       encounterType === "battle" &&
-      !runeAwardedRef.current
+      enemy.health <= 0
     ) {
-      runeAwardedRef.current = true;
-      let foundRune = null;
+      setRewardGiven(true);
 
+      let foundRune = null;
       if (level <= 20 && Math.random() < 0.25) {
         const runeTypes = ["red", "blue", "yellow", "purple", "green"];
         foundRune = runeTypes[Math.floor(Math.random() * runeTypes.length)];
@@ -216,7 +216,7 @@ export default function App() {
       const runePayload = foundRune ? [foundRune] : [];
       submitKnightProgress(name, nextLevel, nextEncounter, runePayload);
     }
-  }, [enemy.health, gameOver, encounterType]);
+  }, [enemy.health, gameOver, encounterType, rewardGiven]);
 
   const maxHP = getMaxHP(player.runes);
   const maxMP = getMaxMP(player.runes);
