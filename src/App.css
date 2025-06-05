@@ -40,3 +40,29 @@
 .read-the-docs {
   color: #888;
 }
+
+/* --- New Animations for Battle Effects --- */
+@keyframes shake {
+  0% { transform: translate(0); }
+  25% { transform: translate(3px, -3px); }
+  50% { transform: translate(-3px, 3px); }
+  75% { transform: translate(3px, 3px); }
+  100% { transform: translate(0); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+.glow-green {
+  box-shadow: 0 0 10px 3px #00ff00aa;
+}
+
+.glow-blue {
+  box-shadow: 0 0 10px 3px #00ccffaa;
+}
+
+.glow-red {
+  box-shadow: 0 0 10px 3px #ff0000aa;
+}
+

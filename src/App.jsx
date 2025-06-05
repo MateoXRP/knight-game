@@ -34,6 +34,9 @@ export default function App() {
   const [shouldStartFresh, setShouldStartFresh] = useState(false);
   const [rewardGiven, setRewardGiven] = useState(false);
 
+  const [playerAnim, setPlayerAnim] = useState("");
+  const [enemyAnim, setEnemyAnim] = useState("");
+
   useEffect(() => {
     const savedName = Cookies.get("knightPlayer");
     if (savedName && savedName.trim() !== "") {
@@ -139,37 +142,44 @@ export default function App() {
 
   useEffect(() => {
     if (!isPlayerTurn && !gameOver && encounterType === "battle" && enemy.health > 0) {
-      const timer = setTimeout(() => {
-        const greenCount = Math.min(player.runes.filter(r => r === "green").length, 4);
-        const defenseFactor = 1 - 0.20 * greenCount;
-        const base = Math.floor(Math.random() * (enemy.atk / 2)) + (enemy.atk / 2);
-        const netDamage = Math.max(Math.floor(base * defenseFactor), 1);
-        const newHealth = Math.max(player.health - netDamage, 0);
+      setTimeout(() => {
+        setEnemyAnim("animate-shake glow-green");
+        setTimeout(() => {
+          setEnemyAnim("");
+          setPlayerAnim("animate-shake glow-red");
 
-        if (newHealth <= 0) {
-          const newLives = player.lives - 1;
-          if (newLives <= 0) {
-            submitKnightProgress(name, level, encounterIndex, []);
-            setLog(prev => ["💀 You have died. Game over!", ...prev]);
-            setGameOver(true);
-            setGameEnded(true);
+          const greenCount = Math.min(player.runes.filter(r => r === "green").length, 4);
+          const defenseFactor = 1 - 0.20 * greenCount;
+          const base = Math.floor(Math.random() * (enemy.atk / 2)) + (enemy.atk / 2);
+          const netDamage = Math.max(Math.floor(base * defenseFactor), 1);
+          const newHealth = Math.max(player.health - netDamage, 0);
+
+          if (newHealth <= 0) {
+            const newLives = player.lives - 1;
+            if (newLives <= 0) {
+              submitKnightProgress(name, level, encounterIndex, []);
+              setLog(prev => ["💀 You have died. Game over!", ...prev]);
+              setGameOver(true);
+              setGameEnded(true);
+            } else {
+              setPlayer(prev => ({
+                ...prev,
+                health: getMaxHP(prev.runes),
+                magic: getMaxMP(prev.runes),
+                lives: newLives
+              }));
+              setLog(prev => ["🩸 You lost a life! Revived with full health and magic.", ...prev]);
+              setIsPlayerTurn(true);
+            }
           } else {
-            setPlayer(prev => ({
-              ...prev,
-              health: getMaxHP(prev.runes),
-              magic: getMaxMP(prev.runes),
-              lives: newLives
-            }));
-            setLog(prev => ["🩸 You lost a life! Revived with full health and magic.", ...prev]);
+            setPlayer(prev => ({ ...prev, health: newHealth }));
+            setLog(prev => [`${enemy.name} hits you for ${netDamage} damage!`, ...prev]);
             setIsPlayerTurn(true);
           }
-        } else {
-          setPlayer(prev => ({ ...prev, health: newHealth }));
-          setLog(prev => [`${enemy.name} hits you for ${netDamage} damage!`, ...prev]);
-          setIsPlayerTurn(true);
-        }
-      }, 1000);
-      return () => clearTimeout(timer);
+
+          setTimeout(() => setPlayerAnim(""), 400);
+        }, 400);
+      }, 400); // ⏳ Pause before enemy attacks
     }
   }, [isPlayerTurn, gameOver, encounterType, enemy, player]);
 
@@ -268,23 +278,47 @@ export default function App() {
           isPlayerTurn={isPlayerTurn}
           canCast={player.magic >= 10}
           disabled={gameOver}
+          playerAnim={playerAnim}
+          enemyAnim={enemyAnim}
           onAttack={() => {
-            let damage = Math.floor(Math.random() * 15) + 5;
-            damage = Math.floor(damage * yellowBoost);
-            damage = Math.max(damage - enemy.def, 1);
-            setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
-            setLog(prev => [`🗡️ You attack for ${damage} damage!`, ...prev]);
-            setIsPlayerTurn(false);
+            setPlayerAnim("animate-shake glow-green");
+            setTimeout(() => {
+              let damage = Math.floor(Math.random() * 15) + 5;
+              damage = Math.floor(damage * yellowBoost);
+              damage = Math.max(damage - enemy.def, 1);
+              setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
+              setLog(prev => [`🗡️ You attack for ${damage} damage!`, ...prev]);
+              setPlayerAnim("");
+              setEnemyAnim("animate-shake glow-red");
+
+              setTimeout(() => {
+                setEnemyAnim("");
+                setTimeout(() => {
+                  setIsPlayerTurn(false);
+                }, 400);
+              }, 400);
+            }, 400);
           }}
           onCastSpell={() => {
             if (player.magic < 10) return;
-            let damage = Math.floor(Math.random() * 25) + 10;
-            damage = Math.floor(damage * purpleBoost);
-            damage = Math.max(damage - enemy.def, 1);
-            setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
-            setPlayer(prev => ({ ...prev, magic: prev.magic - 10 }));
-            setLog(prev => [`🔥 You cast a spell for ${damage} damage!`, ...prev]);
-            setIsPlayerTurn(false);
+            setPlayerAnim("animate-shake glow-blue");
+            setTimeout(() => {
+              let damage = Math.floor(Math.random() * 25) + 10;
+              damage = Math.floor(damage * purpleBoost);
+              damage = Math.max(damage - enemy.def, 1);
+              setEnemy(prev => ({ ...prev, health: Math.max(prev.health - damage, 0) }));
+              setPlayer(prev => ({ ...prev, magic: prev.magic - 10 }));
+              setLog(prev => [`🔥 You cast a spell for ${damage} damage!`, ...prev]);
+              setPlayerAnim("");
+              setEnemyAnim("animate-shake glow-red");
+
+              setTimeout(() => {
+                setEnemyAnim("");
+                setTimeout(() => {
+                  setIsPlayerTurn(false);
+                }, 400);
+              }, 400);
+            }, 400);
           }}
         />
       )}

@@ -11,6 +11,8 @@ export default function Battle({
   isPlayerTurn,
   canCast,
   disabled,
+  playerAnim,
+  enemyAnim,
 }) {
   // Extract emoji and clean name
   const emojiMatch = enemy.name.match(/[\p{Emoji}]+/gu);
@@ -26,13 +28,13 @@ export default function Battle({
           <img
             src={knightImage}
             alt="Knight"
-            className="w-24 h-24 object-contain rounded-full border-2 border-white"
+            className={`w-24 h-24 object-contain rounded-full border-2 border-white ${playerAnim}`}
           />
         </div>
 
         {/* Enemy Side */}
         <div className="flex flex-col items-center w-1/2">
-          <div className="text-7xl mb-2">{emoji}</div>
+          <div className={`text-7xl mb-2 ${enemyAnim}`}>{emoji}</div>
           <EnemyStats enemy={{ ...enemy, name: cleanName }} />
         </div>
       </div>
