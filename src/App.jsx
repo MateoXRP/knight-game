@@ -6,10 +6,7 @@ import Shop from "./components/Shop";
 import Inn from "./components/Inn";
 import GameOver from "./components/GameOver";
 import { getRandomEnemy } from "./utils/enemy";
-
-
-
-
+import PlayerStats from "./components/PlayerStats";
 
 
 import {
@@ -263,13 +260,7 @@ export default function App() {
       <p className="mb-4">🌍 Level {level} — Encounter {encounterIndex}/5 ({encounterType})</p>
       <button onClick={handleSwitchUser} className="bg-red-700 px-2 py-1 rounded text-sm mb-4">🔄 Switch User</button>
 
-      <div className="mb-2">
-        <strong>Player</strong><br />
-        ❤️ {player.health} / {maxHP} | 🔮 {player.magic} / {maxMP} | 💰 {player.gold} | ⭐ {player.exp} | 👤 x{player.lives}
-      </div>
-      <div className="mb-4">
-        <strong>Runes:</strong> {formatRunes(player.runes)}
-      </div>
+      <PlayerStats player={player} maxHP={maxHP} maxMP={maxMP} />
 
       {encounterType === "battle" && (
         <Battle
