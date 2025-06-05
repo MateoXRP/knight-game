@@ -1,3 +1,5 @@
+import EnemyStats from "./EnemyStats";
+
 export default function Battle({
   enemy,
   log,
@@ -9,11 +11,7 @@ export default function Battle({
 }) {
   return (
     <div className="w-full text-center">
-      <div className="mb-2">
-        <strong>{enemy.name}</strong>
-        <br />
-        ❤️ {enemy.health}
-      </div>
+      <EnemyStats enemy={enemy} />
 
       <div className="space-x-2 my-2">
         <button
