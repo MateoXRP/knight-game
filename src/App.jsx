@@ -82,6 +82,23 @@ export default function App() {
     setConfirmingSwitch(false);
   };
 
+  const restartGame = () => {
+    setLevel(1);
+    setEncounterIndex(0);
+    setEncounterType(null);
+    setPreviousEncounterType(null);
+    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [], kills: 0 });
+    setEnemy({ name: "", health: 0, atk: 10, def: 2 });
+    setLog([]);
+    setIsPlayerTurn(true);
+    setGameOver(false);
+    setGameEnded(false);
+    setEncounterComplete(false);
+    setShouldStartFresh(true);
+    setRewardGiven(false);
+    setConfirmingSwitch(false);
+  };
+
   const getRandomEncounterType = (isFirstTurn = false, lvl = level, idx = encounterIndex) => {
     if (isFirstTurn && lvl === 1 && idx === 1) return "battle";
     if (lvl > 20) return "battle";
