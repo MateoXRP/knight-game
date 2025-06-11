@@ -124,22 +124,6 @@ export default function App() {
     }
   };
 
-  const restartGame = () => {
-    setLevel(1);
-    setEncounterIndex(0);
-    setEncounterType(null);
-    setPreviousEncounterType(null);
-    setGameEnded(false);
-    setPlayer({ health: 100, magic: 50, lives: 3, gold: 10, exp: 0, runes: [], kills: 0 });
-    setEnemy({ name: "", health: 0, atk: 10, def: 2 });
-    setLog([]);
-    setIsPlayerTurn(true);
-    setGameOver(false);
-    setEncounterComplete(false);
-    setShouldStartFresh(true);
-    setRewardGiven(false);
-  };
-
   useEffect(() => {
     if (!isPlayerTurn && !gameOver && encounterType === "battle" && enemy.health > 0) {
       setTimeout(() => {
@@ -177,19 +161,14 @@ export default function App() {
             setIsPlayerTurn(true);
           }
 
-          setTimeout(() => setPlayerAnim(""), 400);
-        }, 400);
-      }, 400); // ⏳ Pause before enemy attacks
+          setTimeout(() => setPlayerAnim(""), 250);
+        }, 250);
+      }, 200);
     }
   }, [isPlayerTurn, gameOver, encounterType, enemy, player]);
 
   useEffect(() => {
-    if (
-      !rewardGiven &&
-      !gameOver &&
-      encounterType === "battle" &&
-      enemy.health <= 0
-    ) {
+    if (!rewardGiven && !gameOver && encounterType === "battle" && enemy.health <= 0) {
       setRewardGiven(true);
 
       let foundRune = null;
@@ -257,7 +236,7 @@ export default function App() {
         name={name}
         level={level}
         encounterIndex={encounterIndex}
-        restartGame={restartGame}
+        restartGame={handleSwitchUser}
       />
     );
   }
@@ -265,11 +244,9 @@ export default function App() {
   return (
     <div className="text-white bg-black min-h-screen p-4 flex flex-col items-center justify-center max-w-md mx-auto">
       <h1 className="text-2xl mb-1">🛡️ Knight Game</h1>
-      <p className="mb-2">Welcome, {name}!</p>
       <p className="mb-4">🌍 Level {level} — Encounter {encounterIndex}/5 ({encounterType})</p>
-      <button onClick={handleSwitchUser} className="bg-red-700 px-2 py-1 rounded text-sm mb-4">🔄 Switch User</button>
 
-      <PlayerStats player={player} maxHP={maxHP} maxMP={maxMP} />
+      <PlayerStats player={{ ...player, name }} maxHP={maxHP} maxMP={maxMP} />
 
       {encounterType === "battle" && (
         <Battle
@@ -290,14 +267,13 @@ export default function App() {
               setLog(prev => [`🗡️ You attack for ${damage} damage!`, ...prev]);
               setPlayerAnim("");
               setEnemyAnim("animate-shake glow-red");
-
               setTimeout(() => {
                 setEnemyAnim("");
                 setTimeout(() => {
                   setIsPlayerTurn(false);
-                }, 400);
-              }, 400);
-            }, 400);
+                }, 250);
+              }, 250);
+            }, 250);
           }}
           onCastSpell={() => {
             if (player.magic < 10) return;
@@ -311,14 +287,13 @@ export default function App() {
               setLog(prev => [`🔥 You cast a spell for ${damage} damage!`, ...prev]);
               setPlayerAnim("");
               setEnemyAnim("animate-shake glow-red");
-
               setTimeout(() => {
                 setEnemyAnim("");
                 setTimeout(() => {
                   setIsPlayerTurn(false);
-                }, 400);
-              }, 400);
-            }, 400);
+                }, 250);
+              }, 250);
+            }, 250);
           }}
         />
       )}
@@ -348,7 +323,10 @@ export default function App() {
           ➡️ Continue
         </button>
       )}
+
+      <button onClick={handleSwitchUser} className="mt-4 bg-red-700 px-4 py-2 rounded text-sm">
+        🔄 Switch User
+      </button>
     </div>
   );
 }
-

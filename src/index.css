@@ -12,7 +12,7 @@
   }
 
   .animate-shake {
-    animation: shake 0.4s ease-in-out;
+    animation: shake 0.25s ease-in-out;
   }
 
   .glow-green {
@@ -27,4 +27,3 @@
     box-shadow: 0 0 10px 3px #ff0000aa;
   }
 }
-

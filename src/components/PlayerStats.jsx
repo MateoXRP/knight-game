@@ -12,7 +12,7 @@ export default function PlayerStats({ player, maxHP, maxMP }) {
   return (
     <>
       <div className="mb-2">
-        <strong>Player</strong><br />
+        <strong>{player.name}</strong><br />
         ❤️ {player.health} / {maxHP} | 🔮 {player.magic} / {maxMP} | 💰 {player.gold} | 💀 {player.kills} | 👤 x{player.lives}
       </div>
       <div className="mb-2">
@@ -24,4 +24,3 @@ export default function PlayerStats({ player, maxHP, maxMP }) {
     </>
   );
 }
-
